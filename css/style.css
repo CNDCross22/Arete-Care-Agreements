@@ -629,6 +629,28 @@ button:active{ transform:translateY(1px); }
 .mode-desc{ font-size:13px; color:var(--muted); font-weight:600; line-height:1.45; }
 .mode-go{ margin-top:6px; font-size:13px; font-weight:800; color:var(--teal-dark); }
 
+/* ===================== SIGN / COUNTERSIGN STATUS VIEWS ===================== */
+/* Loading / invalid-link / sent states on sign.html + countersign.html --
+   reuses the empty-state look since it's the same "nothing to show yet /
+   nothing more to do" shape. */
+.sign-status{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    min-height:100%;
+    padding:40px 20px;
+    color:var(--muted);
+    text-align:center;
+}
+.sign-status img{ width:110px; opacity:.92; }
+.sign-status h3{ margin:0; font-size:18px; color:var(--ink); text-transform:none; letter-spacing:0; }
+.sign-status p{ margin:0; font-size:14px; max-width:420px; }
+.sign-status .status-icon{ font-size:42px; line-height:1; }
+.sign-status--error p{ color:#7a1c14; font-weight:600; }
+.sign-status--success .status-icon{ color:var(--teal-dark); }
+
 /* ===================== COMPLIANCE PORTAL ===================== */
 .compliance-layout{
     flex:1;
