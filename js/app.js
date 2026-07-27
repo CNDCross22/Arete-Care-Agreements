@@ -121,6 +121,51 @@ const DOCUMENTS = {
             { id: "cf-ng-newsletter",    label: "Do not give — newsletter",           anchor: "Use of Media", dx: 11.1, dy: 303.9, size: 10 },
             { id: "cf-ng-contact",       label: "Do not give — contact me",           anchor: "Use of Media", dx: 11.0, dy: 336.1, size: 10 }
         ]
+    },
+    sil: {
+        label: "SIL Service Agreement",
+        expectedFile: "New SIL Service Agreement SB.pdf",
+        outputName: "SIL Service Agreement - Signed.pdf",
+        signatures: [
+            {
+                id: "sil-participant", role: "participant", label: "Participant / Representative",
+                anchor: "Signature of Participant", dx: -2.8, dy: -43.1, width: 190, height: 32,
+                date: { cdx: 192.0, dy: 31.5, size: 10 }
+            },
+            {
+                id: "sil-arete", role: "arete", label: "Arete Authorised Person",
+                anchor: "Signature of authorised person", dx: -6.9, dy: -46.0, width: 190, height: 32,
+                date: { cdx: 198.6, dy: 38.2, size: 10 }
+            }
+        ],
+        /* Tick boxes. Boxes sharing a `group` behave like radio buttons (one choice).
+           Offsets are ink-measured glyph centres (verified against this app's own
+           pdf.js build's textContent output, not just PDF font-metric bounding
+           boxes, which run a few points off true baseline for this document). */
+        checkboxes: [
+            // Section 12 — access list (all anchored to the section heading, a rigid block)
+            { id: "sil-auditor-yes", label: "Auditor access: Yes", anchor: "Access to Records", dx: 343.9, dy: 10.6, size: 5, group: "sil-auditor" },
+            { id: "sil-auditor-no",  label: "Auditor access: No",  anchor: "Access to Records", dx: 382.4, dy: 10.6, size: 5, group: "sil-auditor" },
+            { id: "sil-support-coordinator", label: "Support Coordinator", anchor: "Access to Records", dx: 23.5, dy: 65.7, size: 7 },
+            { id: "sil-plan-manager",        label: "Plan Manager",        anchor: "Access to Records", dx: 23.5, dy: 85.6, size: 7 },
+            { id: "sil-school",              label: "School",              anchor: "Access to Records", dx: 23.5, dy: 105.4, size: 7 },
+            { id: "sil-parents",             label: "Parents",             anchor: "Access to Records", dx: 23.5, dy: 125.3, size: 7 },
+            { id: "sil-family-member",       label: "Family Member",       anchor: "Access to Records", dx: 23.5, dy: 145.3, size: 7 },
+            { id: "sil-other-practitioners", label: "Other practitioners / Allied Health", anchor: "Access to Records", dx: 23.5, dy: 165.2, size: 7 },
+            { id: "sil-other-list",          label: "Other",               anchor: "Access to Records", dx: 23.5, dy: 185.1, size: 7 },
+            { id: "sil-offshore",            label: "Offshore Third-Party Contractors", anchor: "Access to Records", dx: 23.5, dy: 205.1, size: 7 },
+            // Section 15 — offered a copy / explained verbally (Yes/No)
+            { id: "sil-copy-yes", label: "Offered a copy: Yes", anchor: "once completed", dx: 4.4, dy: 21.4, size: 7, group: "sil-copy" },
+            { id: "sil-copy-no",  label: "Offered a copy: No",  anchor: "once completed", dx: 46.4, dy: 21.8, size: 5, group: "sil-copy" },
+            { id: "sil-verbally-yes", label: "Explained verbally: Yes", anchor: "explained verbally", dx: 212.1, dy: -3.3, size: 5, group: "sil-verbally" },
+            { id: "sil-verbally-no",  label: "Explained verbally: No",  anchor: "explained verbally", dx: 250.7, dy: -3.3, size: 5, group: "sil-verbally" }
+        ],
+        /* Fill-in blanks (the underlined spaces); dx/dy/width are ink-measured underline positions. */
+        textFields: [
+            { id: "sil-family-name",        label: "Family member name", anchor: "Access to Records", dx: 146.2, dy: 136.3, width: 255, height: 11, size: 9.5, linkedCheckbox: "sil-family-member" },
+            { id: "sil-other-practitioner", label: "Other practitioner", anchor: "Access to Records", dx: 244.0, dy: 156.3, width: 155, height: 11, size: 9.5, linkedCheckbox: "sil-other-practitioners" },
+            { id: "sil-other-list-tf",      label: "Other (list)",       anchor: "Access to Records", dx: 83.3, dy: 176.3, width: 316, height: 11, size: 9.5, linkedCheckbox: "sil-other-list" }
+        ]
     }
 };
 
@@ -149,6 +194,7 @@ const fileInput = document.getElementById("fileInput");
 const pdfContainer = document.getElementById("pdfContainer");
 const emptyState = document.getElementById("emptyState");
 
+const mainLayout = document.querySelector(".main-layout");
 const sidePanel = document.getElementById("sidePanel");
 const panelLocked = document.getElementById("panelLocked");
 const panelBody = document.getElementById("panelBody");
@@ -258,8 +304,21 @@ function selectMode(key) {
     panelLocked.hidden = false;
     panelBody.hidden = true;
     panelMode.textContent = "Awaiting file";
+    collapseSidePanel();
 
     setStep("upload");
+}
+
+// The side panel stays out of the way (and the document gets the full width)
+// until the signer actually clicks a signature box — it isn't needed before that.
+// Shown/hidden via a class (not the `hidden` attribute) so the CSS transition
+// on opacity/width can actually animate instead of snapping instantly.
+function collapseSidePanel() {
+    mainLayout.classList.add("panel-hidden");
+}
+
+function revealSidePanel() {
+    mainLayout.classList.remove("panel-hidden");
 }
 
 // Clear the current file (e.g. wrong document uploaded) and return to the upload
@@ -583,7 +642,6 @@ function enterSigningMode(config, numPages) {
     panelMode.textContent = "Signing";
 
     resizeSignatureCanvas();
-    selectFirstTargetForRole();
     renderSignatureList();
     updateProgress();
     setStep("sign");
@@ -612,6 +670,7 @@ function selectFirstTargetForRole() {
 }
 
 function selectTarget(targetId, box) {
+    const wasHidden = mainLayout.classList.contains("panel-hidden");
     activeTargetId = targetId;
     activeBox = box;
 
@@ -623,6 +682,19 @@ function selectTarget(targetId, box) {
     if (target) {
         signerRoleSelect.value = target.role;
         panelMode.textContent = target.label;
+    }
+
+    revealSidePanel();
+    // The canvas was sized against a hidden (zero-width) panel until now, so it
+    // needs a real measurement once the panel's expand transition has settled
+    // (with an immediate call too, in case transitions are off/reduced-motion).
+    if (wasHidden) {
+        resizeSignatureCanvas();
+        mainLayout.addEventListener("transitionend", function onExpand(event) {
+            if (event.propertyName !== "grid-template-columns") return;
+            mainLayout.removeEventListener("transitionend", onExpand);
+            resizeSignatureCanvas();
+        });
     }
 }
 

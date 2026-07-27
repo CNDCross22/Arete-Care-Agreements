@@ -1,5 +1,6 @@
 # Sample documents contain real participant data (PII) — keep out of the repo
 assets/*.pdf
+Documents/
 
 # OS / editor cruft
 Thumbs.db

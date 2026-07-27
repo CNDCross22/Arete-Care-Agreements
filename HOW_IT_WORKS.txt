@@ -1,0 +1,142 @@
+ARETE CARE SIGNATURE PORTAL — HOW THE CODEBASE WORKS
+=====================================================
+
+WHAT THIS IS
+------------
+A static, client-side web app for signing Arete Care documents (Service
+Agreement, SIL Service Agreement, Schedule of Supports, Consent Form). The
+user uploads a blank PDF, draws signatures, ticks boxes and fills in blanks
+directly on top of the rendered pages, then downloads a flattened, signed
+PDF. Everything happens in the browser — no server, no upload, no backend.
+It's plain HTML/CSS/JS with no build step; just open index.html.
+
+FILES
+-----
+index.html      Page shell: the "which document?" modal, the upload zone,
+                the scrollable PDF preview area, and the signing side panel.
+css/style.css   All styling (Arete Care branded, responsive).
+js/app.js       Everything else: document field definitions, PDF rendering,
+                field placement, signature capture, and the final PDF export.
+libs/           Third-party libraries, vendored (no npm/build step):
+                  pdf.js            — renders PDF pages to <canvas>, and
+                                       extracts text positions for anchoring
+                  pdf-lib           — writes signatures/ticks/text into the
+                                       PDF bytes for the final download
+                  signature_pad     — the draw-your-signature canvas widget
+assets/         Logo etc.
+Documents/      Sample/reference PDFs and Word docs used to calibrate field
+                positions during development (gitignored — contain real
+                participant data). Not used at runtime by the app itself.
+
+THE CORE IDEA: ANCHOR-BASED FIELD PLACEMENT
+--------------------------------------------
+Each document type (service, schedule, consent, sil) needs signature boxes,
+checkboxes and fill-in blanks to land in exact positions on the PDF. Rather
+than hard-coding fixed page/pixel coordinates (which would break the moment
+a document is regenerated with slightly different pagination or line
+wrapping), every field is positioned RELATIVE TO A UNIQUE LINE OF TEXT
+that appears near it — its "anchor".
+
+At upload time:
+  1. buildLineIndex() reads every page's text content via pdf.js and groups
+     characters that share a baseline into "lines", recording each line's
+     normalized text, its left edge (startX) and baseline (baselineTop),
+     both in PDF point space (top-down origin).
+  2. findAnchorLine() locates a given anchor string (e.g. "Access to
+     Records") by searching those lines for a normalized match — this can
+     be on any page, at any position, so the document can reflow freely.
+  3. resolvePlacements() converts each field's stored (dx, dy) offset from
+     its anchor into an absolute page position: rX = anchor.startX + dx,
+     rTop = anchor.baselineTop + dy (same idea for checkbox centres: rCx,
+     rCy, and signature/date positions).
+  4. If any anchor can't be found, the upload is rejected with a "wrong
+     file" error — this is how the app validates that the uploaded PDF is
+     actually the expected document.
+
+This means the DOCUMENTS config (in app.js) only ever stores small, human
+-calibrated offsets (dx, dy, width, height) relative to a text anchor —
+never absolute coordinates — which is what makes the placement survive
+reflow.
+
+THE DOCUMENTS CONFIG
+---------------------
+Near the top of app.js, DOCUMENTS = { service, schedule, consent, sil }.
+Each entry has:
+  label            shown in the mode-selection modal
+  expectedFile      documentation only (not enforced in code)
+  outputName        filename used for the downloaded signed PDF
+  signatures[]      one entry per required signature:
+                      id, role, label, anchor, dx, dy, width, height
+                      optional date: { cdx, dy, size } — a date stamp drawn
+                      next to the signature once applied
+  checkboxes[]      one entry per tick box:
+                      id, label, anchor, dx, dy, size
+                      optional group — boxes sharing a group behave like
+                      radio buttons (ticking one clears the others)
+  textFields[]      one entry per fill-in blank:
+                      id, label, anchor, dx, dy, width, height, size
+                      optional linkedCheckbox — typing into the blank
+                      auto-ticks (or unticks) that checkbox
+
+Adding a new document type means adding a new entry here (plus a card in
+the mode-selection modal in index.html) — no other code changes needed.
+
+CALIBRATING dx/dy (IMPORTANT GOTCHA)
+--------------------------------------
+Offsets are hand-calibrated against the real PDF, and there are two traps
+that have caused real bugs in this codebase:
+
+1. Font-metric bounding boxes vs. true baseline. Tools like pdfplumber/
+   PyMuPDF report character "bounding boxes" derived from font ascent/
+   descent metrics, which can sit a few points off the PDF's actual text
+   baseline (the number pdf.js itself uses internally). If you calibrate
+   offsets against a different tool's bounding box instead of pdf.js's own
+   reported coordinates, fields can look visibly "off centre" once
+   rendered. Symbol/Wingdings-style checkbox glyphs are worst affected —
+   their true ink position has to be measured from actual rendered pixels,
+   not from font metrics, to get a checkbox overlay dead-centred on the
+   printed box.
+
+2. On-screen <input> box vs. exported PDF text. Text-field blanks are
+   rendered TWO different ways from the SAME rTop/height values:
+     - On screen: an <input> positioned via CSS, with a display height of
+       (field.height + 4)px, and the browser vertically centres the typed
+       text inside that box.
+     - In the exported PDF: pdf-lib draws the text at a baseline computed
+       directly from field.height (plus a small +1.5 nudge), with no "+4".
+   Because these two formulas diverge, a dy tuned to look perfect in the
+   downloaded PDF can place the live-typing text too low on screen (even
+   overlapping the printed underline while typing). When adjusting a text
+   field's dy, check both contexts, not just one.
+
+THE SIGNING FLOW (runtime)
+----------------------------
+1. User picks a document type in the modal -> selectMode() resets state
+   and shows the upload zone for that document.
+2. handleFile() reads the uploaded PDF, runs buildLineIndex +
+   resolvePlacements to locate every field, and rejects the file if
+   anchors are missing.
+3. renderAllPages() draws every page to a <canvas> (via pdf.js) and
+   overlays absolutely-positioned signature boxes, checkbox buttons and
+   text inputs on top, positioned as a PERCENTAGE of the page's PDF-point
+   dimensions (see pct() and the --s CSS variable) so everything stays
+   aligned if the page is displayed at any width — this is what makes the
+   layout responsive.
+4. The signer draws a signature on a signature_pad canvas, picks a date,
+   and clicks "Apply signature" -> applySignature() stores the trimmed
+   signature PNG + date, stamps it into the on-screen box, and advances to
+   the next unsigned field.
+5. Checkboxes and text fields are edited directly on the page as the
+   signer clicks/types; ticking is purely client-side state until download.
+6. downloadSignedPdf() loads the ORIGINAL uploaded PDF bytes into pdf-lib,
+   draws each applied signature image, date stamp, checkmark and typed
+   text value at its resolved coordinates, flattens it, and triggers a
+   browser download. Nothing is ever sent anywhere.
+
+WHY TWO DIFFERENT PDF LIBRARIES
+----------------------------------
+pdf.js is used only for READING/rendering (turning PDF pages into pixels
+and extracting text positions for anchoring). pdf-lib is used only for
+WRITING (drawing new content into the existing PDF bytes for the final
+download). They're independent; the app never round-trips a PDF through
+both at once.

@@ -138,6 +138,13 @@ body{
     gap:22px;
     padding:24px 28px;
     align-items:start;
+    transition:grid-template-columns .3s ease;
+}
+
+/* No signature box selected yet: collapse the side panel's column to 0 and
+   let the document smoothly take the full width instead. */
+.main-layout.panel-hidden{
+    grid-template-columns:minmax(0,1fr) 0px;
 }
 
 .pdf-section,
@@ -166,6 +173,24 @@ body{
     flex-direction:column;
     padding:0 0 16px;
     overflow:hidden;
+    min-width:0; /* allow the grid column to actually shrink to 0, not just its content */
+    opacity:1;
+    visibility:visible;
+    transform:translateX(0);
+    transition:opacity .25s ease, transform .25s ease, visibility 0s linear 0s;
+}
+
+/* Fade + slide out as the column collapses; only truly hidden once the fade finishes. */
+.main-layout.panel-hidden .side-panel{
+    opacity:0;
+    visibility:hidden;
+    transform:translateX(16px);
+    transition:opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
+}
+
+@media (prefers-reduced-motion:reduce){
+    .main-layout,
+    .side-panel{ transition:none; }
 }
 
 /* ===================== DOC TOOLBAR ===================== */
