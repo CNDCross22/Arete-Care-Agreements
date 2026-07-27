@@ -20,3 +20,16 @@ export async function lookupByParticipantToken(token: string) {
     if (new Date(data.expires_at) < new Date()) return null;
     return data;
 }
+
+export async function lookupByAuthorisedToken(token: string) {
+    const hash = await hashToken(token);
+    const { data, error } = await supabaseAdmin()
+        .from("documents")
+        .select(COLUMNS)
+        .eq("authorised_token_hash", hash)
+        .maybeSingle();
+
+    if (error || !data) return null;
+    if (new Date(data.expires_at) < new Date()) return null;
+    return data;
+}

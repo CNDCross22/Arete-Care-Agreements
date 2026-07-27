@@ -57,8 +57,8 @@
         </form>
 
         <div class="link-result" id="linkResult" hidden>
-            <strong>Participant link created</strong>
-            <p>Copy this now — it can't be shown again. If it's lost, create a new document; the old link stops working.</p>
+            <strong id="linkResultTitle">Participant link created</strong>
+            <p id="linkResultHint">Copy this now — it can't be shown again. If it's lost, create a new document; the old link stops working.</p>
             <div class="link-row">
                 <input type="text" id="linkOutput" readonly>
                 <button type="button" id="copyLinkBtn">Copy</button>
@@ -78,10 +78,11 @@
                         <th>Status</th>
                         <th>Created</th>
                         <th>Expires</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="docTableBody">
-                    <tr><td colspan="5" class="doc-table-empty">Loading&hellip;</td></tr>
+                    <tr><td colspan="6" class="doc-table-empty">Loading&hellip;</td></tr>
                 </tbody>
             </table>
         </div>

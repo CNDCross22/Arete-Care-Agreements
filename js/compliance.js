@@ -25,6 +25,8 @@ const createForm = document.getElementById("createForm");
 const createBtn = document.getElementById("createBtn");
 const createError = document.getElementById("createError");
 const linkResult = document.getElementById("linkResult");
+const linkResultTitle = document.getElementById("linkResultTitle");
+const linkResultHint = document.getElementById("linkResultHint");
 const linkOutput = document.getElementById("linkOutput");
 const copyLinkBtn = document.getElementById("copyLinkBtn");
 const refreshBtn = document.getElementById("refreshBtn");
@@ -33,6 +35,10 @@ const docTableBody = document.getElementById("docTableBody");
 createForm.addEventListener("submit", handleCreate);
 copyLinkBtn.addEventListener("click", copyLink);
 refreshBtn.addEventListener("click", loadDocuments);
+docTableBody.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-send-authorised]");
+    if (button) handleSendToAuthorised(button.dataset.sendAuthorised);
+});
 
 loadDocuments();
 
@@ -69,6 +75,8 @@ async function handleCreate(event) {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Could not create the document.");
 
+        linkResultTitle.textContent = "Participant link created";
+        linkResultHint.textContent = "Copy this now — it can't be shown again. If it's lost, create a new document; the old link stops working.";
         linkOutput.value = body.participantLink;
         linkResult.hidden = false;
         createForm.reset();
@@ -78,6 +86,40 @@ async function handleCreate(event) {
     } finally {
         createBtn.disabled = false;
         createBtn.textContent = "Create & generate link";
+    }
+}
+
+async function handleSendToAuthorised(documentId) {
+    const authorisedPersonEmail = prompt("Authorised person's email address:");
+    if (!authorisedPersonEmail) return; // cancelled
+
+    const trimmed = authorisedPersonEmail.trim();
+    if (!trimmed || !trimmed.includes("@")) {
+        alert("Enter a valid email address.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-to-authorised`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                apikey: SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ documentId, authorisedPersonEmail: trimmed }),
+        });
+
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not send to the authorised person.");
+
+        linkResultTitle.textContent = "Authorised person link created";
+        linkResultHint.textContent = `Copy this now and send it to ${trimmed} — it can't be shown again.`;
+        linkOutput.value = body.authorisedLink;
+        linkResult.hidden = false;
+        loadDocuments();
+    } catch (error) {
+        alert(error.message || "Something went wrong.");
     }
 }
 
@@ -109,13 +151,13 @@ async function loadDocuments() {
         if (!response.ok) throw new Error(body.error || "Could not load documents.");
         renderDocuments(body.documents);
     } catch (error) {
-        docTableBody.innerHTML = `<tr><td colspan="5" class="doc-table-empty">${escapeHtml(error.message)}</td></tr>`;
+        docTableBody.innerHTML = `<tr><td colspan="6" class="doc-table-empty">${escapeHtml(error.message)}</td></tr>`;
     }
 }
 
 function renderDocuments(documents) {
     if (!documents.length) {
-        docTableBody.innerHTML = '<tr><td colspan="5" class="doc-table-empty">No documents yet.</td></tr>';
+        docTableBody.innerHTML = '<tr><td colspan="6" class="doc-table-empty">No documents yet.</td></tr>';
         return;
     }
 
@@ -124,6 +166,10 @@ function renderDocuments(documents) {
             const participant = `${escapeHtml(doc.participant_name)}<br><span class="doc-table-sub">${escapeHtml(doc.participant_email)}</span>`;
             const label = DOCUMENT_TYPE_LABELS[doc.document_type] || doc.document_type;
             const status = STATUS_LABELS[doc.status] || doc.status;
+            const action =
+                doc.status === "ParticipantSigned"
+                    ? `<button type="button" class="ghost-btn" data-send-authorised="${doc.id}">Send to authorised person</button>`
+                    : "—";
             return `
                 <tr>
                     <td>${participant}</td>
@@ -131,6 +177,7 @@ function renderDocuments(documents) {
                     <td><span class="status-pill status-${doc.status}">${escapeHtml(status)}</span></td>
                     <td>${formatDate(doc.created_at)}</td>
                     <td>${formatDate(doc.expires_at)}</td>
+                    <td>${action}</td>
                 </tr>
             `;
         })

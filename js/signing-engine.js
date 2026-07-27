@@ -179,8 +179,12 @@ function configForParticipantStage(config) {
     return { ...config, signatures: config.signatures.filter((s) => PARTICIPANT_STAGE_ROLES.includes(s.role)) };
 }
 
+// The checkboxes/text fields belong to the participant's stage and are already
+// flattened (baked as pixels) into the participant-signed PDF this stage
+// fetches, so they're dropped here rather than re-rendered as fresh, editable
+// overlays on top of an already-completed answer.
 function configForAuthorisedStage(config) {
-    return { ...config, signatures: config.signatures.filter((s) => s.role === "arete") };
+    return { ...config, signatures: config.signatures.filter((s) => s.role === "arete"), checkboxes: [], textFields: [] };
 }
 
 /* ---------- State ---------- */
