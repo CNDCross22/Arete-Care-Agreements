@@ -281,7 +281,12 @@ async function handleSendLink(button) {
 // Compliance confirms the Authorised Person's own signing is done and closes
 // the document out. No file to verify -- this is a manual record, not a check.
 async function handleMarkFullyExecuted(documentId) {
-    if (!confirm("Mark this document as fully executed? Only do this once the team leader has signed it themselves.")) {
+    if (!confirm(
+        "Mark this document as fully executed?\n\n" +
+        "Only do this once the team leader has signed it themselves.\n\n" +
+        "This also deletes the stored PDFs and stops the participant's link working. " +
+        "The document stays in this list as a record, but the files can't be recovered."
+    )) {
         return;
     }
 
