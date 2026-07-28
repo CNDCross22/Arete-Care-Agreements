@@ -37,6 +37,13 @@ const fileName = document.getElementById("fileName");
 const fileSize = document.getElementById("fileSize");
 const fileClear = document.getElementById("fileClear");
 
+// Guards against a slow response from an earlier load landing after a newer one
+// and overwriting the fresher list, easy to hit now that every action refreshes
+// the table. Declared up here, not next to loadDocuments(): `let` stays in the
+// temporal dead zone until its declaration is evaluated, so a startup call to
+// loadDocuments() below would throw if this sat further down the file.
+let loadSequence = 0;
+
 // Kick the table off before wiring anything else. If a later listener throws
 // (a stale cached script against newer HTML, say), the list still loads
 // instead of sitting on "Loading..." forever with no clue why.
@@ -242,11 +249,6 @@ function fileToBase64(file) {
         reader.readAsDataURL(file);
     });
 }
-
-// Guards against a slow response from an earlier load landing after a newer
-// one and overwriting the fresher list -- easy to hit now that every action
-// refreshes the table.
-let loadSequence = 0;
 
 async function loadDocuments() {
     const thisLoad = ++loadSequence;
