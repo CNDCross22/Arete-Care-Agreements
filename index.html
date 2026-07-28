@@ -21,13 +21,13 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modeModalTitle">
         <img class="modal-logo" src="assets/arete-logo.png" alt="Arete Care">
         <h2 id="modeModalTitle">Which document are you signing?</h2>
-        <p class="modal-sub">Choose a document. The signature and date fields are pre-positioned for you.</p>
+        <p class="modal-sub">Choose a document. The signature and date fields are already positioned for you.</p>
 
         <div class="mode-grid">
             <button type="button" class="mode-option" data-mode="service">
                 <span class="mode-icon mode-icon--teal">&#128196;</span>
                 <span class="mode-name">Service Agreement</span>
-                <span class="mode-desc">Participant / Representative &amp; Arete authorised person signatures, plus tick boxes &amp; fill-in fields.</span>
+                <span class="mode-desc">Participant / Representative &amp; Arete authorised person signatures, plus tick boxes &amp; text fields.</span>
                 <span class="mode-go">Choose this &rarr;</span>
             </button>
 
@@ -41,14 +41,14 @@
             <button type="button" class="mode-option" data-mode="consent">
                 <span class="mode-icon mode-icon--teal">&#9989;</span>
                 <span class="mode-name">Consent Form</span>
-                <span class="mode-desc">Use-of-media consent tick boxes, plus Participant &amp; Representative signatures and date.</span>
+                <span class="mode-desc">Use of media consent tick boxes, plus Participant &amp; Representative signatures and date.</span>
                 <span class="mode-go">Choose this &rarr;</span>
             </button>
 
             <button type="button" class="mode-option" data-mode="sil">
                 <span class="mode-icon mode-icon--purple">&#127968;</span>
                 <span class="mode-name">SIL Service Agreement</span>
-                <span class="mode-desc">Participant / Representative &amp; Arete authorised person signatures, plus access-to-records tick boxes &amp; fill-in fields.</span>
+                <span class="mode-desc">Participant / Representative &amp; Arete authorised person signatures, plus access to records tick boxes &amp; text fields.</span>
                 <span class="mode-go">Choose this &rarr;</span>
             </button>
         </div>
@@ -91,7 +91,7 @@
             </div>
             <div class="doc-toolbar-actions">
                 <button type="button" class="ghost-btn ghost-btn--reset" id="resetBtn" hidden
-                        title="Clear this file and upload a different one">&#8635; Reset / re-upload</button>
+                        title="Clear this file and upload a different one">&#8635; Reset</button>
                 <button type="button" class="ghost-btn" id="changeDocBtn">Change document</button>
             </div>
         </div>
@@ -136,9 +136,9 @@
 
         <div class="panel-body" id="panelBody" hidden>
             <div class="panel-hint" id="fieldsHint" hidden>
-                This document has tick boxes and fill-in blanks. Click the
+                This document has tick boxes and blanks to fill in. Click the
                 highlighted boxes on the document to tick them, and type into the
-                shaded blanks &mdash; typing ticks the matching box automatically.
+                shaded blanks. Typing ticks the matching box automatically.
             </div>
 
             <h3>Signature for</h3>

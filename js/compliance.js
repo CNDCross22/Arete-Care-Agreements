@@ -207,7 +207,7 @@ async function handleSendLink(button) {
 // Compliance confirms the Authorised Person's own signing is done and closes
 // the document out. No file to verify -- this is a manual record, not a check.
 async function handleMarkFullyExecuted(documentId) {
-    if (!confirm("Mark this document as fully executed? Only do this once the authorised person has signed it themselves.")) {
+    if (!confirm("Mark this document as fully executed? Only do this once the team leader has signed it themselves.")) {
         return;
     }
 
@@ -294,7 +294,7 @@ function renderDocuments(documents) {
                     <td>${escapeHtml(label)}</td>
                     <td><span class="status-pill status-${doc.status}">${escapeHtml(status)}</span></td>
                     <td>${formatDate(doc.created_at)}</td>
-                    <td>${formatDate(doc.link_sent_at)}</td>
+                    <td>${formatDate(doc.link_sent_at, "Not sent")}</td>
                     <td>${renderAction(doc)}</td>
                 </tr>
             `;
@@ -312,17 +312,17 @@ function renderAction(doc) {
         }</button>`;
     }
     if (doc.status === "AwaitingAuthorisedSignature") {
-        return `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}" title="Mark as fully executed — only once the team leader has signed it themselves">Mark executed</button>`;
+        return `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}" title="Mark as fully executed, only once the team leader has signed it themselves">Mark executed</button>`;
     }
-    return "—";
+    return "";
 }
 
 // Built once, not per cell -- constructing an Intl formatter is the expensive
 // part of toLocaleDateString, and the table calls this twice per row.
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" });
 
-function formatDate(value) {
-    if (!value) return "—";
+function formatDate(value, fallback = "") {
+    if (!value) return fallback;
     return DATE_FORMAT.format(new Date(value));
 }
 

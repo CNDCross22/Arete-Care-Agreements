@@ -80,7 +80,7 @@ Deno.serve(async (req: Request) => {
         const label = DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.document_type;
         await sendGraphEmail({
             to: doc.authorised_person_email,
-            subject: `${label} signed by ${doc.participant_name} - your signature needed`,
+            subject: `Your signature is needed: ${label} signed by ${doc.participant_name}`,
             html: `
                 <p>${escapeHtml(doc.participant_name)} has signed their ${escapeHtml(label)}.</p>
                 <p>The signed document is attached. Please review it and add your signature using your own process, then mark it as fully executed in the Compliance portal once that's done.</p>

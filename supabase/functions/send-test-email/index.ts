@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
     try {
         await sendGraphEmail({
             to: body.to.trim(),
-            subject: "Arete Care Signature Portal - test email",
+            subject: "Arete Care Signature Portal test email",
             html: "<p>This is a sample test email from the Arete Care Signature Portal's Microsoft Graph integration.</p><p>If you're reading this, sending works.</p>",
         });
     } catch (error) {

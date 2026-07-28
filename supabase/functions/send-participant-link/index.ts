@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
     }
     if (!SENDABLE_STATUSES.includes(doc.status)) {
         return jsonResponse(req, 409, {
-            error: "This document has already been signed by the participant, so its link can't be re-sent.",
+            error: "This document has already been signed by the participant, so its link can't be sent again.",
         });
     }
 
@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
                 <p>Hi ${escapeHtml(doc.participant_name)},</p>
                 <p>Your ${escapeHtml(label)} is ready for you to review and sign online.</p>
                 <p><a href="${participantLink}">Open your document to sign</a></p>
-                <p>This link is personal to you — please don't forward it.</p>
+                <p>This link is personal to you, so please don't forward it.</p>
             `,
         });
     } catch (error) {
