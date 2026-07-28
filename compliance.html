@@ -50,7 +50,24 @@
             <input type="email" id="participantEmail" placeholder="participant@example.com" required>
 
             <h3>PDF file</h3>
-            <input type="file" id="pdfFile" accept="application/pdf,.pdf" required>
+            <!-- The native input is hidden and driven by the zone below. It
+                 deliberately has no `required`: a hidden control can't be
+                 focused to show a validation bubble, which silently blocks
+                 submit -- handleCreate() checks for a file instead. -->
+            <div class="file-drop" id="fileDrop" tabindex="0" role="button" aria-label="Choose a PDF file">
+                <span class="file-drop-icon">&#11014;</span>
+                <span class="file-drop-main">Choose a PDF</span>
+                <span class="file-drop-sub">or drag &amp; drop it here</span>
+            </div>
+            <div class="file-chosen" id="fileChosen" hidden>
+                <span class="file-chosen-icon">&#128196;</span>
+                <span class="file-chosen-text">
+                    <strong id="fileName"></strong>
+                    <span id="fileSize"></span>
+                </span>
+                <button type="button" class="file-clear" id="fileClear" aria-label="Remove this file" title="Remove">&times;</button>
+            </div>
+            <input type="file" id="pdfFile" accept="application/pdf,.pdf" hidden>
 
             <h3>Team leader email</h3>
             <input type="email" id="teamLeaderEmail" placeholder="team.leader@aretecare.com.au" required>

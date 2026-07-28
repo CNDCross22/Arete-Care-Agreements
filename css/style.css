@@ -677,6 +677,72 @@ button:active{ transform:translateY(1px); }
 .compliance-card h3{ margin:14px 0 6px; font-size:13px; color:var(--ink); }
 .compliance-card h3:first-of-type{ margin-top:0; }
 
+/* Custom file picker -- the native "Choose File" control can't be styled and
+   looks foreign next to the rest of the form. Compact sibling of the signing
+   tool's .upload-zone, sized for this narrow column. */
+.file-drop{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2px;
+    padding:18px 14px;
+    border:2px dashed #b7cdd0;
+    border-radius:var(--radius-sm);
+    background:linear-gradient(180deg,#fafdfd,#f3f9f9);
+    cursor:pointer;
+    text-align:center;
+    transition:border-color .15s, background .15s;
+}
+.file-drop:hover,
+.file-drop:focus-visible{
+    border-color:var(--teal);
+    background:var(--teal-soft);
+    outline:none;
+}
+.file-drop.dragover{
+    border-color:var(--purple);
+    background:var(--purple-soft);
+}
+.file-drop-icon{ font-size:20px; line-height:1; color:var(--teal); }
+.file-drop-main{ font-size:13.5px; font-weight:700; color:var(--teal-dark); }
+.file-drop-sub{ font-size:11.5px; color:var(--muted); }
+
+.file-chosen{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    border:1px solid var(--teal);
+    border-radius:var(--radius-sm);
+    background:var(--teal-soft);
+}
+.file-chosen-icon{ font-size:17px; line-height:1; flex:none; }
+.file-chosen-text{ display:flex; flex-direction:column; min-width:0; flex:1; }
+.file-chosen-text strong{
+    font-size:12.5px;
+    color:var(--ink);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+.file-chosen-text span{ font-size:11px; color:var(--muted); }
+.file-clear{
+    flex:none;
+    width:24px;
+    height:24px;
+    padding:0;
+    border:none;
+    border-radius:50%;
+    background:transparent;
+    color:var(--muted);
+    font-size:19px;
+    line-height:1;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+}
+.file-clear:hover{ background:#ffffff; color:var(--danger); }
+
 .compliance-error{
     margin-top:10px;
     color:var(--danger);

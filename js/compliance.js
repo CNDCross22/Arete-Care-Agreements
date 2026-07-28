@@ -30,9 +30,76 @@ const linkResult = document.getElementById("linkResult");
 const refreshBtn = document.getElementById("refreshBtn");
 const docTableBody = document.getElementById("docTableBody");
 const docCount = document.getElementById("docCount");
+const pdfFile = document.getElementById("pdfFile");
+const fileDrop = document.getElementById("fileDrop");
+const fileChosen = document.getElementById("fileChosen");
+const fileName = document.getElementById("fileName");
+const fileSize = document.getElementById("fileSize");
+const fileClear = document.getElementById("fileClear");
 
 createForm.addEventListener("submit", handleCreate);
 refreshBtn.addEventListener("click", loadDocuments);
+
+/* ---------- Custom file picker ---------- */
+fileDrop.addEventListener("click", () => pdfFile.click());
+fileDrop.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        pdfFile.click();
+    }
+});
+pdfFile.addEventListener("change", () => showChosenFile(pdfFile.files[0]));
+fileClear.addEventListener("click", clearChosenFile);
+
+// Both are needed for a drop target: without preventDefault on dragover the
+// browser just navigates to the dropped file instead.
+fileDrop.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    fileDrop.classList.add("dragover");
+});
+fileDrop.addEventListener("dragleave", () => fileDrop.classList.remove("dragover"));
+fileDrop.addEventListener("drop", (event) => {
+    event.preventDefault();
+    fileDrop.classList.remove("dragover");
+
+    const file = event.dataTransfer.files[0];
+    if (!file) return;
+    if (!isPdf(file)) {
+        showCreateError("That doesn't look like a PDF. Please choose a .pdf file.");
+        return;
+    }
+
+    // Mirror the drop into the real input so the form reads from one source.
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    pdfFile.files = transfer.files;
+    showChosenFile(file);
+});
+
+function isPdf(file) {
+    return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+function showChosenFile(file) {
+    if (!file) return clearChosenFile();
+    hideCreateError();
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    fileChosen.hidden = false;
+    fileDrop.hidden = true;
+}
+
+function clearChosenFile() {
+    pdfFile.value = "";
+    fileChosen.hidden = true;
+    fileDrop.hidden = false;
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 docTableBody.addEventListener("click", (event) => {
     const sendBtn = event.target.closest("[data-send-link]");
     if (sendBtn) {
@@ -53,11 +120,15 @@ async function handleCreate(event) {
     const documentType = document.getElementById("documentType").value;
     const participantName = document.getElementById("participantName").value.trim();
     const participantEmail = document.getElementById("participantEmail").value.trim();
-    const file = document.getElementById("pdfFile").files[0];
+    const file = pdfFile.files[0];
     const authorisedPersonEmail = document.getElementById("teamLeaderEmail").value.trim();
 
     if (!file) {
         showCreateError("Choose a PDF file.");
+        return;
+    }
+    if (!isPdf(file)) {
+        showCreateError("That doesn't look like a PDF. Please choose a .pdf file.");
         return;
     }
     if (!authorisedPersonEmail) {
@@ -85,6 +156,9 @@ async function handleCreate(event) {
 
         linkResult.hidden = false;
         createForm.reset();
+        // form.reset() clears the input's value but not the custom UI built
+        // around it, which would otherwise still show the old filename.
+        clearChosenFile();
         loadDocuments();
     } catch (error) {
         showCreateError(error.message || "Something went wrong.");
