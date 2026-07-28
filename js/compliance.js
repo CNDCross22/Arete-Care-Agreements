@@ -13,7 +13,7 @@ const DOCUMENT_TYPE_LABELS = {
 };
 
 const STATUS_LABELS = {
-    Uploaded: "Uploaded",
+    Uploaded: "Not sent yet",
     AwaitingParticipantSignature: "Awaiting participant",
     ParticipantSigned: "Participant signed",
     AwaitingAuthorisedSignature: "Awaiting authorised person",
@@ -25,17 +25,17 @@ const createForm = document.getElementById("createForm");
 const createBtn = document.getElementById("createBtn");
 const createError = document.getElementById("createError");
 const linkResult = document.getElementById("linkResult");
-const linkResultTitle = document.getElementById("linkResultTitle");
-const linkResultHint = document.getElementById("linkResultHint");
-const linkOutput = document.getElementById("linkOutput");
-const copyLinkBtn = document.getElementById("copyLinkBtn");
 const refreshBtn = document.getElementById("refreshBtn");
 const docTableBody = document.getElementById("docTableBody");
 
 createForm.addEventListener("submit", handleCreate);
-copyLinkBtn.addEventListener("click", copyLink);
 refreshBtn.addEventListener("click", loadDocuments);
 docTableBody.addEventListener("click", (event) => {
+    const sendBtn = event.target.closest("[data-send-link]");
+    if (sendBtn) {
+        handleSendLink(sendBtn);
+        return;
+    }
     const markBtn = event.target.closest("[data-mark-executed]");
     if (markBtn) handleMarkFullyExecuted(markBtn.dataset.markExecuted);
 });
@@ -80,17 +80,6 @@ async function handleCreate(event) {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Could not create the document.");
 
-        if (body.emailSent) {
-            linkResultTitle.textContent = `Link emailed to ${participantEmail}`;
-            linkResultHint.textContent =
-                "The participant has been emailed their signing link. Copy it below if you also need to send it another way — it can't be shown again once you leave this page.";
-        } else {
-            linkResultTitle.textContent = "Link created — but the email didn't send";
-            linkResultHint.textContent = `Send this link to ${participantEmail} yourself. Copy it now; it can't be shown again.${
-                body.emailError ? ` (${body.emailError})` : ""
-            }`;
-        }
-        linkOutput.value = body.participantLink;
         linkResult.hidden = false;
         createForm.reset();
         loadDocuments();
@@ -98,7 +87,43 @@ async function handleCreate(event) {
         showCreateError(error.message || "Something went wrong.");
     } finally {
         createBtn.disabled = false;
-        createBtn.textContent = "Create & generate link";
+        createBtn.textContent = "Create document";
+    }
+}
+
+// Emails the participant their signing link. Each send issues a brand-new
+// link and kills the previous one -- the old token can't be recovered (only
+// its hash is stored), so re-sending necessarily means re-issuing.
+async function handleSendLink(button) {
+    const { sendLink: documentId, sentBefore } = button.dataset;
+
+    if (sentBefore === "true" && !confirm("Send a new link to this participant?\n\nThe link they were sent before will stop working.")) {
+        return;
+    }
+
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = "Sending…";
+
+    try {
+        const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-participant-link`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                apikey: SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ documentId }),
+        });
+
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not send the link.");
+
+        loadDocuments();
+    } catch (error) {
+        alert(error.message || "Something went wrong.");
+        button.disabled = false;
+        button.textContent = originalText;
     }
 }
 
@@ -138,13 +163,6 @@ function fileToBase64(file) {
     });
 }
 
-function copyLink() {
-    navigator.clipboard.writeText(linkOutput.value).then(() => {
-        copyLinkBtn.textContent = "Copied!";
-        setTimeout(() => (copyLinkBtn.textContent = "Copy"), 1500);
-    });
-}
-
 async function loadDocuments() {
     try {
         const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/list-documents`, {
@@ -172,22 +190,33 @@ function renderDocuments(documents) {
             const participant = `${escapeHtml(doc.participant_name)}<br><span class="doc-table-sub">${escapeHtml(doc.participant_email)}</span>`;
             const label = DOCUMENT_TYPE_LABELS[doc.document_type] || doc.document_type;
             const status = STATUS_LABELS[doc.status] || doc.status;
-            const action =
-                doc.status === "AwaitingAuthorisedSignature"
-                    ? `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}">Mark fully executed</button>`
-                    : "—";
             return `
                 <tr>
                     <td>${participant}</td>
                     <td>${escapeHtml(label)}</td>
                     <td><span class="status-pill status-${doc.status}">${escapeHtml(status)}</span></td>
                     <td>${formatDate(doc.created_at)}</td>
-                    <td>${formatDate(doc.expires_at)}</td>
-                    <td>${action}</td>
+                    <td>${formatDate(doc.link_sent_at)}</td>
+                    <td>${renderAction(doc)}</td>
                 </tr>
             `;
         })
         .join("");
+}
+
+// Whichever single step is this document's turn -- send the link to the
+// participant, or close it out once the team leader has signed elsewhere.
+function renderAction(doc) {
+    if (doc.status === "Uploaded" || doc.status === "AwaitingParticipantSignature") {
+        const sentBefore = Boolean(doc.link_sent_at);
+        return `<button type="button" class="ghost-btn" data-send-link="${doc.id}" data-sent-before="${sentBefore}">${
+            sentBefore ? "Resend link" : "Send link"
+        }</button>`;
+    }
+    if (doc.status === "AwaitingAuthorisedSignature") {
+        return `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}">Mark fully executed</button>`;
+    }
+    return "—";
 }
 
 function formatDate(value) {

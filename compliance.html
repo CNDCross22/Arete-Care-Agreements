@@ -32,7 +32,7 @@
 
     <section class="compliance-card">
         <h2>New document</h2>
-        <p class="compliance-hint">Upload a PDF that's already filled in for this participant. A signing link is generated once it's created.</p>
+        <p class="compliance-hint">Upload a PDF that's already filled in for this participant. Nothing is sent yet — you send them their link from the list below when you're ready.</p>
 
         <form id="createForm">
             <h3>Document type</h3>
@@ -56,17 +56,13 @@
             <input type="email" id="teamLeaderEmail" placeholder="team.leader@aretecare.com.au" required>
             <p class="compliance-hint">Once the participant signs and sends it back, this is who it's automatically handed off to for the second signature (done outside this tool).</p>
 
-            <button type="submit" id="createBtn">Create &amp; generate link</button>
+            <button type="submit" id="createBtn">Create document</button>
             <p class="compliance-error" id="createError" hidden></p>
         </form>
 
         <div class="link-result" id="linkResult" hidden>
-            <strong id="linkResultTitle">Participant link created</strong>
-            <p id="linkResultHint">Copy this now — it can't be shown again. If it's lost, create a new document; the old link stops working.</p>
-            <div class="link-row">
-                <input type="text" id="linkOutput" readonly>
-                <button type="button" id="copyLinkBtn">Copy</button>
-            </div>
+            <strong id="linkResultTitle">Document created</strong>
+            <p id="linkResultHint">It's in the list — press <em>Send link</em> when you're ready for the participant to receive it.</p>
         </div>
     </section>
 
@@ -81,7 +77,7 @@
                         <th>Document</th>
                         <th>Status</th>
                         <th>Created</th>
-                        <th>Expires</th>
+                        <th>Link sent</th>
                         <th>Action</th>
                     </tr>
                 </thead>
