@@ -16,3 +16,11 @@ export const DOCUMENTS_BUCKET = "documents";
 
 export const VALID_DOCUMENT_TYPES = ["service", "schedule", "consent", "sil"] as const;
 export type DocumentType = (typeof VALID_DOCUMENT_TYPES)[number];
+
+// Human-readable names for emails. Mirrors the labels the frontend shows.
+export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+    service: "Service Agreement",
+    schedule: "Schedule of Supports",
+    consent: "Consent Form",
+    sil: "SIL Service Agreement",
+};

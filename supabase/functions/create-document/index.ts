@@ -7,7 +7,13 @@
 // hand-off to them happens automatically (see submit-participant-signature).
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
 import { generateToken, hashToken } from "../_shared/tokens.ts";
-import { supabaseAdmin, DOCUMENTS_BUCKET, VALID_DOCUMENT_TYPES } from "../_shared/supabaseAdmin.ts";
+import {
+    supabaseAdmin,
+    DOCUMENTS_BUCKET,
+    VALID_DOCUMENT_TYPES,
+    DOCUMENT_TYPE_LABELS,
+} from "../_shared/supabaseAdmin.ts";
+import { sendGraphEmail, escapeHtml } from "../_shared/graphMail.ts";
 
 const FRONTEND_BASE_URL = "https://cndcross22.github.io/Arete-Care-Agreements";
 
@@ -89,11 +95,38 @@ Deno.serve(async (req: Request) => {
         return jsonResponse(req, 500, { error: `Could not create the document record: ${insert.error.message}` });
     }
 
+    const participantLink = `${FRONTEND_BASE_URL}/sign.html?token=${participantToken}`;
+
+    // Email the participant their link. The document already exists at this
+    // point, so a mail failure shouldn't fail the request -- instead report it
+    // back so Compliance knows to send the link (still returned below) by hand.
+    let emailSent = false;
+    let emailError: string | null = null;
+    try {
+        const label = DOCUMENT_TYPE_LABELS[documentType] ?? documentType;
+        await sendGraphEmail({
+            to: participantEmail.trim(),
+            subject: `Your ${label} is ready to sign`,
+            html: `
+                <p>Hi ${escapeHtml(participantName.trim())},</p>
+                <p>Your ${escapeHtml(label)} is ready for you to review and sign online.</p>
+                <p><a href="${participantLink}">Open your document to sign</a></p>
+                <p>This link is personal to you — please don't forward it.</p>
+            `,
+        });
+        emailSent = true;
+    } catch (error) {
+        emailError = error instanceof Error ? error.message : String(error);
+        console.error(`Failed to email participant for document ${documentId}:`, error);
+    }
+
     return jsonResponse(req, 201, {
         documentId,
         // Not retrievable later -- only the hash is stored. The compliance UI
         // must show/copy this now, since regenerating it invalidates any
         // link already sent out.
-        participantLink: `${FRONTEND_BASE_URL}/sign.html?token=${participantToken}`,
+        participantLink,
+        emailSent,
+        emailError,
     });
 });

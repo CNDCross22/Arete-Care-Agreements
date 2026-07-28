@@ -80,8 +80,16 @@ async function handleCreate(event) {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Could not create the document.");
 
-        linkResultTitle.textContent = "Participant link created";
-        linkResultHint.textContent = "Copy this now — it can't be shown again. If it's lost, create a new document; the old link stops working.";
+        if (body.emailSent) {
+            linkResultTitle.textContent = `Link emailed to ${participantEmail}`;
+            linkResultHint.textContent =
+                "The participant has been emailed their signing link. Copy it below if you also need to send it another way — it can't be shown again once you leave this page.";
+        } else {
+            linkResultTitle.textContent = "Link created — but the email didn't send";
+            linkResultHint.textContent = `Send this link to ${participantEmail} yourself. Copy it now; it can't be shown again.${
+                body.emailError ? ` (${body.emailError})` : ""
+            }`;
+        }
         linkOutput.value = body.participantLink;
         linkResult.hidden = false;
         createForm.reset();

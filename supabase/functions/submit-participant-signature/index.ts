@@ -8,18 +8,11 @@
 // outside this system; Compliance marks it done via mark-fully-executed once
 // that's back.
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
-import { supabaseAdmin, DOCUMENTS_BUCKET } from "../_shared/supabaseAdmin.ts";
+import { supabaseAdmin, DOCUMENTS_BUCKET, DOCUMENT_TYPE_LABELS } from "../_shared/supabaseAdmin.ts";
 import { lookupByParticipantToken } from "../_shared/documentLookup.ts";
-import { sendGraphEmail } from "../_shared/graphMail.ts";
+import { sendGraphEmail, escapeHtml } from "../_shared/graphMail.ts";
 
 const INVALID_LINK_ERROR = "This link is no longer valid. It may have expired or already been used.";
-
-const DOCUMENT_TYPE_LABELS: Record<string, string> = {
-    service: "Service Agreement",
-    schedule: "Schedule of Supports",
-    consent: "Consent Form",
-    sil: "SIL Service Agreement",
-};
 
 Deno.serve(async (req: Request) => {
     const preflight = handlePreflight(req);
@@ -84,7 +77,7 @@ Deno.serve(async (req: Request) => {
             to: doc.authorised_person_email,
             subject: `${label} signed by ${doc.participant_name} - your signature needed`,
             html: `
-                <p>${doc.participant_name} has signed their ${label}.</p>
+                <p>${escapeHtml(doc.participant_name)} has signed their ${escapeHtml(label)}.</p>
                 <p>The signed document is attached. Please review it and add your signature using your own process, then mark it as fully executed in the Compliance portal once that's done.</p>
             `,
             attachment: {

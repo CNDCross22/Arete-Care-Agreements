@@ -13,6 +13,16 @@ interface SendEmailOptions {
     attachment?: { name: string; contentBytes: string; contentType?: string };
 }
 
+// Escape anything user-supplied (names, etc.) before interpolating it into an
+// email's HTML body, so stray angle brackets can't break or inject into it.
+export function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
 async function getGraphToken(): Promise<string> {
     const tenantId = Deno.env.get("GRAPH_TENANT_ID")!;
     const clientId = Deno.env.get("GRAPH_CLIENT_ID")!;
