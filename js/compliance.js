@@ -36,8 +36,13 @@ createForm.addEventListener("submit", handleCreate);
 copyLinkBtn.addEventListener("click", copyLink);
 refreshBtn.addEventListener("click", loadDocuments);
 docTableBody.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-send-authorised]");
-    if (button) handleSendToAuthorised(button.dataset.sendAuthorised);
+    const sendBtn = event.target.closest("[data-send-authorised]");
+    if (sendBtn) {
+        handleSendToAuthorised(sendBtn.dataset.sendAuthorised);
+        return;
+    }
+    const markBtn = event.target.closest("[data-mark-executed]");
+    if (markBtn) handleMarkFullyExecuted(markBtn.dataset.markExecuted);
 });
 
 loadDocuments();
@@ -89,6 +94,9 @@ async function handleCreate(event) {
     }
 }
 
+// The Authorised Person signs outside this system entirely (their own tools),
+// so there's no link to generate here -- this just records who it's been
+// handed to and marks it "awaiting" on the dashboard for tracking.
 async function handleSendToAuthorised(documentId) {
     const authorisedPersonEmail = prompt("Authorised person's email address:");
     if (!authorisedPersonEmail) return; // cancelled
@@ -111,12 +119,36 @@ async function handleSendToAuthorised(documentId) {
         });
 
         const body = await response.json();
-        if (!response.ok) throw new Error(body.error || "Could not send to the authorised person.");
+        if (!response.ok) throw new Error(body.error || "Could not record the hand-off.");
 
-        linkResultTitle.textContent = "Authorised person link created";
-        linkResultHint.textContent = `Copy this now and send it to ${trimmed} — it can't be shown again.`;
-        linkOutput.value = body.authorisedLink;
-        linkResult.hidden = false;
+        alert(`Recorded — send the signed document to ${trimmed} yourself for now (automatic emailing isn't wired up yet).`);
+        loadDocuments();
+    } catch (error) {
+        alert(error.message || "Something went wrong.");
+    }
+}
+
+// Compliance confirms the Authorised Person's own signing is done and closes
+// the document out. No file to verify -- this is a manual record, not a check.
+async function handleMarkFullyExecuted(documentId) {
+    if (!confirm("Mark this document as fully executed? Only do this once the authorised person has signed it themselves.")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/mark-fully-executed`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                apikey: SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ documentId }),
+        });
+
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not mark this document as fully executed.");
+
         loadDocuments();
     } catch (error) {
         alert(error.message || "Something went wrong.");
@@ -166,10 +198,12 @@ function renderDocuments(documents) {
             const participant = `${escapeHtml(doc.participant_name)}<br><span class="doc-table-sub">${escapeHtml(doc.participant_email)}</span>`;
             const label = DOCUMENT_TYPE_LABELS[doc.document_type] || doc.document_type;
             const status = STATUS_LABELS[doc.status] || doc.status;
-            const action =
-                doc.status === "ParticipantSigned"
-                    ? `<button type="button" class="ghost-btn" data-send-authorised="${doc.id}">Send to authorised person</button>`
-                    : "—";
+            let action = "—";
+            if (doc.status === "ParticipantSigned") {
+                action = `<button type="button" class="ghost-btn" data-send-authorised="${doc.id}">Send to authorised person</button>`;
+            } else if (doc.status === "AwaitingAuthorisedSignature") {
+                action = `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}">Mark fully executed</button>`;
+            }
             return `
                 <tr>
                     <td>${participant}</td>

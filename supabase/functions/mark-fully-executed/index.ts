@@ -1,10 +1,7 @@
-// Compliance-only. Manual hand-off: Compliance has reviewed the
-// participant-signed document and records the Authorised Person's email at
-// this moment (not a fixed mailbox -- see the architecture plan). There is no
-// in-portal signing for this stage -- the Authorised Person signs using their
-// own tools/process outside this system. This just records who it went to and
-// moves the document into that "awaiting" state for tracking on the
-// dashboard; Compliance marks it done via mark-fully-executed once it's back.
+// Compliance-only. The Authorised Person signs outside this system entirely
+// (their own tools/process) -- there's no file or signature for us to verify
+// here. This just lets Compliance record that it came back fully executed
+// once they've confirmed it, closing out the document on the dashboard.
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
 import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
 
@@ -16,16 +13,15 @@ Deno.serve(async (req: Request) => {
         return jsonResponse(req, 405, { error: "Use POST." });
     }
 
-    let body: { documentId?: string; authorisedPersonEmail?: string };
+    let body: { documentId?: string };
     try {
         body = await req.json();
     } catch {
         return jsonResponse(req, 400, { error: "Expected a JSON body." });
     }
 
-    const { documentId, authorisedPersonEmail } = body;
+    const { documentId } = body;
     if (!documentId) return jsonResponse(req, 400, { error: "Missing documentId." });
-    if (!authorisedPersonEmail?.trim()) return jsonResponse(req, 400, { error: "authorisedPersonEmail is required." });
 
     const supabase = supabaseAdmin();
 
@@ -37,18 +33,15 @@ Deno.serve(async (req: Request) => {
 
     if (fetchError) return jsonResponse(req, 500, { error: fetchError.message });
     if (!doc) return jsonResponse(req, 404, { error: "No document with that id." });
-    if (doc.status !== "ParticipantSigned") {
+    if (doc.status !== "AwaitingAuthorisedSignature") {
         return jsonResponse(req, 400, {
-            error: `This document isn't ready to send to an authorised person (current status: ${doc.status}).`,
+            error: `This document isn't awaiting an authorised person's signature (current status: ${doc.status}).`,
         });
     }
 
     const { error: updateError } = await supabase
         .from("documents")
-        .update({
-            status: "AwaitingAuthorisedSignature",
-            authorised_person_email: authorisedPersonEmail.trim(),
-        })
+        .update({ status: "FullyExecuted", finalised_at: new Date().toISOString() })
         .eq("id", documentId);
 
     if (updateError) {
