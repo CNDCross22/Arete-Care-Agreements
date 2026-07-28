@@ -12,11 +12,13 @@ const DOCUMENT_TYPE_LABELS = {
     sil: "SIL Service Agreement",
 };
 
+// Wording matches what Compliance actually calls these people ("team leader"),
+// not the internal status names.
 const STATUS_LABELS = {
     Uploaded: "Not sent yet",
     AwaitingParticipantSignature: "Awaiting participant",
     ParticipantSigned: "Participant signed",
-    AwaitingAuthorisedSignature: "Awaiting authorised person",
+    AwaitingAuthorisedSignature: "Awaiting team leader",
     FullyExecuted: "Fully executed",
     Purged: "Expired / purged",
 };
@@ -27,6 +29,7 @@ const createError = document.getElementById("createError");
 const linkResult = document.getElementById("linkResult");
 const refreshBtn = document.getElementById("refreshBtn");
 const docTableBody = document.getElementById("docTableBody");
+const docCount = document.getElementById("docCount");
 
 createForm.addEventListener("submit", handleCreate);
 refreshBtn.addEventListener("click", loadDocuments);
@@ -163,7 +166,15 @@ function fileToBase64(file) {
     });
 }
 
+// Guards against a slow response from an earlier load landing after a newer
+// one and overwriting the fresher list -- easy to hit now that every action
+// refreshes the table.
+let loadSequence = 0;
+
 async function loadDocuments() {
+    const thisLoad = ++loadSequence;
+    refreshBtn.disabled = true;
+
     try {
         const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/list-documents`, {
             headers: {
@@ -172,27 +183,40 @@ async function loadDocuments() {
             },
         });
         const body = await response.json();
+        if (thisLoad !== loadSequence) return;
         if (!response.ok) throw new Error(body.error || "Could not load documents.");
         renderDocuments(body.documents);
     } catch (error) {
+        if (thisLoad !== loadSequence) return;
+        docCount.textContent = "";
         docTableBody.innerHTML = `<tr><td colspan="6" class="doc-table-empty">${escapeHtml(error.message)}</td></tr>`;
+    } finally {
+        if (thisLoad === loadSequence) refreshBtn.disabled = false;
     }
 }
 
 function renderDocuments(documents) {
+    docCount.textContent = documents.length
+        ? `${documents.length} document${documents.length === 1 ? "" : "s"}`
+        : "";
+
     if (!documents.length) {
         docTableBody.innerHTML = '<tr><td colspan="6" class="doc-table-empty">No documents yet.</td></tr>';
         return;
     }
 
+    // One innerHTML write for the whole table rather than one per row: the
+    // browser parses and lays out once instead of on every iteration.
     docTableBody.innerHTML = documents
         .map((doc) => {
-            const participant = `${escapeHtml(doc.participant_name)}<br><span class="doc-table-sub">${escapeHtml(doc.participant_email)}</span>`;
             const label = DOCUMENT_TYPE_LABELS[doc.document_type] || doc.document_type;
             const status = STATUS_LABELS[doc.status] || doc.status;
             return `
                 <tr>
-                    <td>${participant}</td>
+                    <td>
+                        ${escapeHtml(doc.participant_name)}
+                        <span class="doc-table-sub" title="${escapeHtml(doc.participant_email)}">${escapeHtml(doc.participant_email)}</span>
+                    </td>
                     <td>${escapeHtml(label)}</td>
                     <td><span class="status-pill status-${doc.status}">${escapeHtml(status)}</span></td>
                     <td>${formatDate(doc.created_at)}</td>
@@ -214,20 +238,26 @@ function renderAction(doc) {
         }</button>`;
     }
     if (doc.status === "AwaitingAuthorisedSignature") {
-        return `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}">Mark fully executed</button>`;
+        return `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}" title="Mark as fully executed — only once the team leader has signed it themselves">Mark executed</button>`;
     }
     return "—";
 }
 
+// Built once, not per cell -- constructing an Intl formatter is the expensive
+// part of toLocaleDateString, and the table calls this twice per row.
+const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" });
+
 function formatDate(value) {
     if (!value) return "—";
-    return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    return DATE_FORMAT.format(new Date(value));
 }
 
+const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+
+// String replace rather than the innerHTML-of-a-detached-div trick: that
+// allocated a DOM element for every field of every row just to escape text.
 function escapeHtml(value) {
-    const div = document.createElement("div");
-    div.textContent = value ?? "";
-    return div.innerHTML;
+    return String(value ?? "").replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
 }
 
 function showCreateError(message) {

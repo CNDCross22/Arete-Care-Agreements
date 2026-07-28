@@ -30,7 +30,7 @@
 
 <div class="compliance-layout">
 
-    <section class="compliance-card">
+    <section class="compliance-card compliance-card--form">
         <h2>New document</h2>
         <p class="compliance-hint">Upload a PDF that's already filled in for this participant. Nothing is sent yet — you send them their link from the list below when you're ready.</p>
 
@@ -67,8 +67,13 @@
     </section>
 
     <section class="compliance-card compliance-card--wide">
-        <h2>Documents</h2>
-        <button type="button" class="ghost-btn" id="refreshBtn">&#8635; Refresh</button>
+        <div class="doc-list-head">
+            <h2>Documents</h2>
+            <div class="doc-list-head-right">
+                <span class="doc-count" id="docCount"></span>
+                <button type="button" class="ghost-btn" id="refreshBtn">&#8635; Refresh</button>
+            </div>
+        </div>
         <div class="doc-table-wrap">
             <table class="doc-table">
                 <thead>

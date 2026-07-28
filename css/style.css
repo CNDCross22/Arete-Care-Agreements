@@ -655,10 +655,10 @@ button:active{ transform:translateY(1px); }
 .compliance-layout{
     flex:1;
     width:100%;
-    max-width:1100px;
+    max-width:1320px;
     margin:0 auto;
     display:grid;
-    grid-template-columns:360px minmax(0,1fr);
+    grid-template-columns:320px minmax(0,1fr);
     gap:22px;
     padding:24px 28px;
     align-items:start;
@@ -670,6 +670,7 @@ button:active{ transform:translateY(1px); }
     border-radius:var(--radius);
     box-shadow:var(--shadow);
     padding:22px;
+    min-width:0;
 }
 .compliance-card h2{ margin:0 0 6px; color:var(--purple-dark); }
 .compliance-hint{ margin:0 0 18px; color:var(--muted); font-size:13px; }
@@ -699,19 +700,59 @@ button:active{ transform:translateY(1px); }
 .link-row input{ flex:1; font-size:12.5px; }
 .link-row button{ flex:none; }
 
-.doc-table-wrap{ overflow-x:auto; margin-top:12px; }
+/* Named distinctly from .doc-toolbar, which is the signing tool's own toolbar
+   further up this file -- same idea, different page, different styling. */
+.doc-list-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+}
+.doc-list-head h2{ margin:0; }
+.doc-list-head-right{ display:flex; align-items:center; gap:10px; }
+.doc-count{ color:var(--muted); font-size:12.5px; white-space:nowrap; }
+
+/* Header row stays put while the body scrolls, so you never lose track of
+   which column you're reading in a long list. */
+.doc-table-wrap{ overflow:auto; margin-top:12px; }
 .doc-table{ width:100%; border-collapse:collapse; font-size:13px; }
 .doc-table th{
+    position:sticky;
+    top:0;
+    z-index:1;
+    background:var(--panel);
     text-align:left;
-    padding:8px 10px;
+    padding:10px 8px;
     color:var(--muted);
     font-size:11.5px;
     text-transform:uppercase;
     letter-spacing:.03em;
     border-bottom:1px solid var(--line);
+    white-space:nowrap;
 }
-.doc-table td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:top; }
-.doc-table-sub{ color:var(--muted); font-size:11.5px; }
+.doc-table td{ padding:11px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
+.doc-table tbody tr:last-child td{ border-bottom:none; }
+.doc-table tbody tr{ transition:background .12s ease; }
+.doc-table tbody tr:hover{ background:#fafbfc; }
+
+/* Column sizing: keep the two date columns and the action button on one line
+   each, and let the participant cell absorb the slack -- a long email address
+   ellipsises rather than forcing the action button out of view. */
+.doc-table td:nth-child(4),
+.doc-table td:nth-child(5){ white-space:nowrap; color:var(--muted); }
+.doc-table th:nth-child(6),
+.doc-table td:nth-child(6){ white-space:nowrap; text-align:right; }
+.doc-table td:first-child{ max-width:240px; }
+
+.doc-table-sub{
+    display:block;
+    color:var(--muted);
+    font-size:11.5px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
 .doc-table-empty{ text-align:center; color:var(--muted); padding:24px 10px; }
 
 .status-pill{
@@ -730,8 +771,27 @@ button:active{ transform:translateY(1px); }
 .status-pill.status-AwaitingAuthorisedSignature{ background:var(--purple-soft); color:var(--purple-dark); }
 .status-pill.status-Purged{ background:var(--danger-soft); color:var(--danger); }
 
+/* Desktop: same fixed app shell the signing tool uses -- the page itself never
+   scrolls, each card scrolls inside its own screen-height area. Without this
+   the global `overflow:hidden` (see RESPONSIVE below) would simply clip the
+   documents list once it outgrew the viewport, with no way to reach the rest. */
+@media (min-width:1081px){
+    /* flex:1 (base rule) already sizes this to the space left by the header and
+       footer; min-height:0 is what lets it shrink so the cards can scroll. */
+    .compliance-layout{ min-height:0; align-items:stretch; }
+    .compliance-card{ display:flex; flex-direction:column; min-height:0; max-height:100%; }
+    /* The form card scrolls as a whole; the documents card pins its heading and
+       scrolls only the table, so Refresh stays reachable. */
+    .compliance-card--form{ overflow-y:auto; }
+    .compliance-card--wide > .doc-list-head{ flex:none; }
+    .compliance-card--wide > .doc-table-wrap{ flex:1; min-height:0; }
+}
+
 @media (max-width:900px){
     .compliance-layout{ grid-template-columns:1fr; }
+    /* Stacked: cap the list instead of letting it run on forever, so the
+       create form stays reachable without a long scroll past it. */
+    .doc-table-wrap{ max-height:60vh; }
 }
 
 /* ===================== FOOTER ===================== */
