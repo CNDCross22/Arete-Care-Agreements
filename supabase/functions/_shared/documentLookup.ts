@@ -12,7 +12,7 @@ import { hashToken } from "./tokens.ts";
 import { supabaseAdmin } from "./supabaseAdmin.ts";
 
 const COLUMNS =
-    "id, document_type, status, file_original, file_participant_signed, file_final, expires_at";
+    "id, document_type, status, file_original, file_participant_signed, file_final, expires_at, participant_name, authorised_person_email";
 
 export async function lookupByParticipantToken(token: string) {
     const hash = await hashToken(token);
