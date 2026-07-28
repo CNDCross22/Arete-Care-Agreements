@@ -8,7 +8,12 @@
 // outside this system; Compliance marks it done via mark-fully-executed once
 // that's back.
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
-import { supabaseAdmin, DOCUMENTS_BUCKET, DOCUMENT_TYPE_LABELS } from "../_shared/supabaseAdmin.ts";
+import {
+    supabaseAdmin,
+    DOCUMENTS_BUCKET,
+    DOCUMENT_TYPE_LABELS,
+    documentFileName,
+} from "../_shared/supabaseAdmin.ts";
 import { lookupByParticipantToken } from "../_shared/documentLookup.ts";
 import { sendGraphEmail, escapeHtml } from "../_shared/graphMail.ts";
 
@@ -81,7 +86,7 @@ Deno.serve(async (req: Request) => {
                 <p>The signed document is attached. Please review it and add your signature using your own process, then mark it as fully executed in the Compliance portal once that's done.</p>
             `,
             attachment: {
-                name: `${doc.document_type}-participant-signed.pdf`,
+                name: documentFileName(doc.document_type, doc.participant_name),
                 contentBytes: pdfBase64,
             },
         });

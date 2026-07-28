@@ -24,3 +24,20 @@ export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
     consent: "Consent Form",
     sil: "SIL Service Agreement",
 };
+
+// What the PDF is called when it reaches a person, e.g.
+// "SIL Service Agreement - Carlo Dizon.pdf". Storage paths stay UUID-keyed --
+// this is only for files leaving the system.
+export function documentFileName(documentType: string, participantName: string): string {
+    const label = DOCUMENT_TYPE_LABELS[documentType] ?? documentType;
+    // Strip characters Windows/macOS reject in filenames, plus control chars,
+    // so an unusual participant name can't produce an unsaveable attachment.
+    const safeName = participantName
+        .replace(/[\\/:*?"<>|]/g, "")
+        // deno-lint-ignore no-control-regex
+        .replace(/[\x00-\x1f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    return safeName ? `${label} - ${safeName}.pdf` : `${label}.pdf`;
+}
