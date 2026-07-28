@@ -1,9 +1,13 @@
 // Shared token validation used by every token-gated endpoint. Centralising the
-// hash lookup + expiry check here keeps that anti-replay logic in one place
-// instead of copy-pasted per function -- see the "Link/token model" section of
-// the architecture plan. (Only the participant gets a portal link/token -- the
-// Authorised Person signs outside this system with their own tools, see the
-// "Send to authorised person" hand-off in compliance.html.)
+// hash lookup here keeps that lookup logic in one place instead of
+// copy-pasted per function -- see the "Link/token model" section of the
+// architecture plan. (Only the participant gets a portal link/token -- the
+// Authorised Person signs outside this system with their own tools.)
+//
+// NOTE: there is no expiry check here for now. The 30-day link-expiry/purge
+// idea from the original plan (Phase 5) was never built, so links don't stop
+// working after any particular time -- only status (e.g. already signed)
+// invalidates a link. Revisit if/when retention automation is actually built.
 import { hashToken } from "./tokens.ts";
 import { supabaseAdmin } from "./supabaseAdmin.ts";
 
@@ -19,6 +23,5 @@ export async function lookupByParticipantToken(token: string) {
         .maybeSingle();
 
     if (error || !data) return null;
-    if (new Date(data.expires_at) < new Date()) return null;
     return data;
 }

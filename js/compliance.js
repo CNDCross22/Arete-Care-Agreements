@@ -36,11 +36,6 @@ createForm.addEventListener("submit", handleCreate);
 copyLinkBtn.addEventListener("click", copyLink);
 refreshBtn.addEventListener("click", loadDocuments);
 docTableBody.addEventListener("click", (event) => {
-    const sendBtn = event.target.closest("[data-send-authorised]");
-    if (sendBtn) {
-        handleSendToAuthorised(sendBtn.dataset.sendAuthorised);
-        return;
-    }
     const markBtn = event.target.closest("[data-mark-executed]");
     if (markBtn) handleMarkFullyExecuted(markBtn.dataset.markExecuted);
 });
@@ -56,9 +51,14 @@ async function handleCreate(event) {
     const participantName = document.getElementById("participantName").value.trim();
     const participantEmail = document.getElementById("participantEmail").value.trim();
     const file = document.getElementById("pdfFile").files[0];
+    const authorisedPersonEmail = document.getElementById("teamLeaderEmail").value.trim();
 
     if (!file) {
         showCreateError("Choose a PDF file.");
+        return;
+    }
+    if (!authorisedPersonEmail) {
+        showCreateError("Enter the team leader's email.");
         return;
     }
 
@@ -74,7 +74,7 @@ async function handleCreate(event) {
                 Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
                 apikey: SUPABASE_ANON_KEY,
             },
-            body: JSON.stringify({ documentType, participantName, participantEmail, pdfBase64 }),
+            body: JSON.stringify({ documentType, participantName, participantEmail, pdfBase64, authorisedPersonEmail }),
         });
 
         const body = await response.json();
@@ -91,40 +91,6 @@ async function handleCreate(event) {
     } finally {
         createBtn.disabled = false;
         createBtn.textContent = "Create & generate link";
-    }
-}
-
-// The Authorised Person signs outside this system entirely (their own tools),
-// so there's no link to generate here -- this just records who it's been
-// handed to and marks it "awaiting" on the dashboard for tracking.
-async function handleSendToAuthorised(documentId) {
-    const authorisedPersonEmail = prompt("Authorised person's email address:");
-    if (!authorisedPersonEmail) return; // cancelled
-
-    const trimmed = authorisedPersonEmail.trim();
-    if (!trimmed || !trimmed.includes("@")) {
-        alert("Enter a valid email address.");
-        return;
-    }
-
-    try {
-        const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-to-authorised`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-                apikey: SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({ documentId, authorisedPersonEmail: trimmed }),
-        });
-
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error || "Could not record the hand-off.");
-
-        alert(`Recorded — send the signed document to ${trimmed} yourself for now (automatic emailing isn't wired up yet).`);
-        loadDocuments();
-    } catch (error) {
-        alert(error.message || "Something went wrong.");
     }
 }
 
@@ -198,12 +164,10 @@ function renderDocuments(documents) {
             const participant = `${escapeHtml(doc.participant_name)}<br><span class="doc-table-sub">${escapeHtml(doc.participant_email)}</span>`;
             const label = DOCUMENT_TYPE_LABELS[doc.document_type] || doc.document_type;
             const status = STATUS_LABELS[doc.status] || doc.status;
-            let action = "—";
-            if (doc.status === "ParticipantSigned") {
-                action = `<button type="button" class="ghost-btn" data-send-authorised="${doc.id}">Send to authorised person</button>`;
-            } else if (doc.status === "AwaitingAuthorisedSignature") {
-                action = `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}">Mark fully executed</button>`;
-            }
+            const action =
+                doc.status === "AwaitingAuthorisedSignature"
+                    ? `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}">Mark fully executed</button>`
+                    : "—";
             return `
                 <tr>
                     <td>${participant}</td>

@@ -52,6 +52,10 @@
             <h3>PDF file</h3>
             <input type="file" id="pdfFile" accept="application/pdf,.pdf" required>
 
+            <h3>Team leader email</h3>
+            <input type="email" id="teamLeaderEmail" placeholder="team.leader@aretecare.com.au" required>
+            <p class="compliance-hint">Once the participant signs and sends it back, this is who it's automatically handed off to for the second signature (done outside this tool).</p>
+
             <button type="submit" id="createBtn">Create &amp; generate link</button>
             <p class="compliance-error" id="createError" hidden></p>
         </form>

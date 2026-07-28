@@ -1,13 +1,14 @@
 // Compliance-only. Accepts a pre-filled PDF for one specific participant,
 // stores it, and issues their signing link. No auth check here -- deliberate,
 // see the "Auth (compliance)" decision in the architecture plan.
+//
+// The authorised person's (team leader's) email is collected here, up front --
+// not later at hand-off time -- because once the participant signs, the
+// hand-off to them happens automatically (see submit-participant-signature).
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
 import { generateToken, hashToken } from "../_shared/tokens.ts";
 import { supabaseAdmin, DOCUMENTS_BUCKET, VALID_DOCUMENT_TYPES } from "../_shared/supabaseAdmin.ts";
 
-// Where the frontend's participant-signing page lives; kept as one constant
-// since it's not a secret (the link is protected by the token, not by hiding
-// this base URL) but does need updating if the GitHub Pages site ever moves.
 const FRONTEND_BASE_URL = "https://cndcross22.github.io/Arete-Care-Agreements";
 
 Deno.serve(async (req: Request) => {
@@ -23,6 +24,7 @@ Deno.serve(async (req: Request) => {
         participantName?: string;
         participantEmail?: string;
         pdfBase64?: string;
+        authorisedPersonEmail?: string;
     };
     try {
         body = await req.json();
@@ -30,13 +32,16 @@ Deno.serve(async (req: Request) => {
         return jsonResponse(req, 400, { error: "Expected a JSON body." });
     }
 
-    const { documentType, participantName, participantEmail, pdfBase64 } = body;
+    const { documentType, participantName, participantEmail, pdfBase64, authorisedPersonEmail } = body;
 
     if (!documentType || !VALID_DOCUMENT_TYPES.includes(documentType as never)) {
         return jsonResponse(req, 400, { error: `documentType must be one of: ${VALID_DOCUMENT_TYPES.join(", ")}` });
     }
     if (!participantName?.trim() || !participantEmail?.trim()) {
         return jsonResponse(req, 400, { error: "participantName and participantEmail are required." });
+    }
+    if (!authorisedPersonEmail?.trim()) {
+        return jsonResponse(req, 400, { error: "authorisedPersonEmail (team leader's email) is required." });
     }
     if (!pdfBase64) {
         return jsonResponse(req, 400, { error: "pdfBase64 is required." });
@@ -72,6 +77,7 @@ Deno.serve(async (req: Request) => {
             participant_token_hash: participantTokenHash,
             participant_name: participantName.trim(),
             participant_email: participantEmail.trim(),
+            authorised_person_email: authorisedPersonEmail.trim(),
             file_original: storagePath,
         })
         .select("id")

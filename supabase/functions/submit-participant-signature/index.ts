@@ -1,7 +1,11 @@
 // Token-gated, public. Accepts the flattened, participant-signed PDF (built
 // client-side by the same pdf-lib logic as the local tool -- this function
-// stays dumb about PDF internals), stores it, and flips status to
-// ParticipantSigned. This is the "Send" hand-off back to Compliance.
+// stays dumb about PDF internals), stores it, and moves straight to
+// AwaitingAuthorisedSignature. The hand-off to the authorised person (team
+// leader) is automatic -- their email was already collected at document
+// creation, so there's no separate manual "send" step anymore. They sign
+// using their own tools outside this system; Compliance marks it done via
+// mark-fully-executed once that's back.
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
 import { supabaseAdmin, DOCUMENTS_BUCKET } from "../_shared/supabaseAdmin.ts";
 import { lookupByParticipantToken } from "../_shared/documentLookup.ts";
@@ -52,7 +56,7 @@ Deno.serve(async (req: Request) => {
     const update = await supabase
         .from("documents")
         .update({
-            status: "ParticipantSigned",
+            status: "AwaitingAuthorisedSignature",
             file_participant_signed: storagePath,
             participant_signed_at: new Date().toISOString(),
         })
