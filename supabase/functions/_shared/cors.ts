@@ -15,6 +15,10 @@ export function corsHeaders(origin: string | null): HeadersInit {
         "Access-Control-Allow-Origin": allowOrigin,
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+        // Without this the browser re-runs the preflight OPTIONS before every
+        // single request, roughly doubling the round trips for each action.
+        // A day is safe: these values only change when this file does.
+        "Access-Control-Max-Age": "86400",
         "Vary": "Origin",
     };
 }

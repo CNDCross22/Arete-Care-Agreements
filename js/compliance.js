@@ -37,6 +37,11 @@ const fileName = document.getElementById("fileName");
 const fileSize = document.getElementById("fileSize");
 const fileClear = document.getElementById("fileClear");
 
+// Kick the table off before wiring anything else. If a later listener throws
+// (a stale cached script against newer HTML, say), the list still loads
+// instead of sitting on "Loading..." forever with no clue why.
+loadDocuments();
+
 createForm.addEventListener("submit", handleCreate);
 refreshBtn.addEventListener("click", loadDocuments);
 
@@ -109,8 +114,6 @@ docTableBody.addEventListener("click", (event) => {
     const markBtn = event.target.closest("[data-mark-executed]");
     if (markBtn) handleMarkFullyExecuted(markBtn.dataset.markExecuted);
 });
-
-loadDocuments();
 
 async function handleCreate(event) {
     event.preventDefault();
