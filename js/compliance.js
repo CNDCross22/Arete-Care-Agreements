@@ -36,6 +36,8 @@ const fileChosen = document.getElementById("fileChosen");
 const fileName = document.getElementById("fileName");
 const fileSize = document.getElementById("fileSize");
 const fileClear = document.getElementById("fileClear");
+const liveDot = document.getElementById("liveDot");
+const liveLabel = document.getElementById("liveLabel");
 
 // Guards against a slow response from an earlier load landing after a newer one
 // and overwriting the fresher list, easy to hit now that every action refreshes
@@ -44,10 +46,46 @@ const fileClear = document.getElementById("fileClear");
 // loadDocuments() below would throw if this sat further down the file.
 let loadSequence = 0;
 
+// Last rendered table contents, used to skip no-op redraws (see renderDocuments).
+let lastSnapshot = null;
+
+// The status column updates itself. Realtime over Supabase's WebSocket was the
+// obvious choice but it enforces RLS, and `documents` deliberately has RLS on
+// with no policies so only the Edge Functions can read it. Subscribing from the
+// browser would mean granting the public anon key SELECT on the whole table,
+// exposing participant emails and token hashes. Polling the same Edge Function
+// the page already uses keeps that boundary intact, and at this scale (a
+// compliance team watching a handful of documents) the difference is invisible.
+const POLL_INTERVAL_MS = 15000;
+let pollTimer = null;
+
 // Kick the table off before wiring anything else. If a later listener throws
 // (a stale cached script against newer HTML, say), the list still loads
 // instead of sitting on "Loading..." forever with no clue why.
 loadDocuments();
+startPolling();
+
+// A hidden tab doesn't need updating, and a laptop that's been asleep would
+// otherwise wake to a queue of pointless requests. Stop when hidden, and
+// refresh immediately on return so the table is current the moment it's seen.
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        stopPolling();
+    } else {
+        loadDocuments({ background: true });
+        startPolling();
+    }
+});
+
+function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(() => loadDocuments({ background: true }), POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+}
 
 createForm.addEventListener("submit", handleCreate);
 refreshBtn.addEventListener("click", loadDocuments);
@@ -105,6 +143,20 @@ function clearChosenFile() {
     pdfFile.value = "";
     fileChosen.hidden = true;
     fileDrop.hidden = false;
+}
+
+// Shows the list is updating itself, and says so plainly when it isn't, so a
+// stalled table is never mistaken for a quiet one.
+function markLive() {
+    liveDot.classList.remove("is-stale");
+    liveDot.title = "Updating automatically";
+    liveLabel.textContent = "Live";
+}
+
+function markStale() {
+    liveDot.classList.add("is-stale");
+    liveDot.title = "Couldn't reach the server on the last check. Still trying.";
+    liveLabel.textContent = "Reconnecting";
 }
 
 function formatFileSize(bytes) {
@@ -250,9 +302,12 @@ function fileToBase64(file) {
     });
 }
 
-async function loadDocuments() {
+// `background` marks an automatic poll rather than something the user asked
+// for: it leaves the Refresh button alone and stays quiet on failure, so a
+// blip in connectivity doesn't replace a good table with an error message.
+async function loadDocuments({ background = false } = {}) {
     const thisLoad = ++loadSequence;
-    refreshBtn.disabled = true;
+    if (!background) refreshBtn.disabled = true;
 
     try {
         const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/list-documents`, {
@@ -265,16 +320,32 @@ async function loadDocuments() {
         if (thisLoad !== loadSequence) return;
         if (!response.ok) throw new Error(body.error || "Could not load documents.");
         renderDocuments(body.documents);
+        markLive();
     } catch (error) {
         if (thisLoad !== loadSequence) return;
+        if (background) {
+            // Leave the last good table on screen and try again next tick.
+            markStale();
+            return;
+        }
         docCount.textContent = "";
+        lastSnapshot = null;
         docTableBody.innerHTML = `<tr><td colspan="6" class="doc-table-empty">${escapeHtml(error.message)}</td></tr>`;
     } finally {
-        if (thisLoad === loadSequence) refreshBtn.disabled = false;
+        if (thisLoad === loadSequence && !background) refreshBtn.disabled = false;
     }
 }
 
 function renderDocuments(documents) {
+    // Polling means most loads find nothing new. Rewriting innerHTML anyway
+    // would cancel a hover, drop focus, and interrupt a click already in
+    // flight, so only touch the DOM when something actually differs.
+    const snapshot = JSON.stringify(
+        documents.map((d) => [d.id, d.status, d.link_sent_at, d.participant_name, d.participant_email, d.document_type]),
+    );
+    if (snapshot === lastSnapshot) return;
+    lastSnapshot = snapshot;
+
     docCount.textContent = documents.length
         ? `${documents.length} document${documents.length === 1 ? "" : "s"}`
         : "";
