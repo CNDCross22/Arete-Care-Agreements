@@ -59,6 +59,13 @@ let lastSnapshot = null;
 const POLL_INTERVAL_MS = 15000;
 let pollTimer = null;
 
+// Number of user-initiated actions in flight (creating a document, sending a
+// link, marking one executed). Background polls stand down while this is above
+// zero: the poll can't touch the upload form, but it does redraw the table, and
+// redrawing it mid-click would swap the button out from under the user. Actions
+// refresh the table themselves when they finish, so nothing is missed.
+let busyActions = 0;
+
 // Kick the table off before wiring anything else. If a later listener throws
 // (a stale cached script against newer HTML, say), the list still loads
 // instead of sitting on "Loading..." forever with no clue why.
@@ -200,6 +207,7 @@ async function handleCreate(event) {
 
     createBtn.disabled = true;
     createBtn.textContent = "Creating…";
+    busyActions++;
 
     try {
         const pdfBase64 = await fileToBase64(file);
@@ -221,12 +229,14 @@ async function handleCreate(event) {
         // form.reset() clears the input's value but not the custom UI built
         // around it, which would otherwise still show the old filename.
         clearChosenFile();
-        loadDocuments();
     } catch (error) {
         showCreateError(error.message || "Something went wrong.");
     } finally {
         createBtn.disabled = false;
         createBtn.textContent = "Create document";
+        // Drop the guard before refreshing, or the refresh would be skipped.
+        busyActions--;
+        loadDocuments();
     }
 }
 
@@ -243,6 +253,7 @@ async function handleSendLink(button) {
     const originalText = button.textContent;
     button.disabled = true;
     button.textContent = "Sending…";
+    busyActions++;
 
     try {
         const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-participant-link`, {
@@ -257,12 +268,13 @@ async function handleSendLink(button) {
 
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Could not send the link.");
-
-        loadDocuments();
     } catch (error) {
         alert(error.message || "Something went wrong.");
         button.disabled = false;
         button.textContent = originalText;
+    } finally {
+        busyActions--;
+        loadDocuments();
     }
 }
 
@@ -273,6 +285,7 @@ async function handleMarkFullyExecuted(documentId) {
         return;
     }
 
+    busyActions++;
     try {
         const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/mark-fully-executed`, {
             method: "POST",
@@ -286,10 +299,11 @@ async function handleMarkFullyExecuted(documentId) {
 
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Could not mark this document as fully executed.");
-
-        loadDocuments();
     } catch (error) {
         alert(error.message || "Something went wrong.");
+    } finally {
+        busyActions--;
+        loadDocuments();
     }
 }
 
@@ -306,6 +320,8 @@ function fileToBase64(file) {
 // for: it leaves the Refresh button alone and stays quiet on failure, so a
 // blip in connectivity doesn't replace a good table with an error message.
 async function loadDocuments({ background = false } = {}) {
+    if (background && busyActions > 0) return;
+
     const thisLoad = ++loadSequence;
     if (!background) refreshBtn.disabled = true;
 
