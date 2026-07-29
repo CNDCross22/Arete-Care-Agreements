@@ -12,7 +12,7 @@ import { hashToken } from "./tokens.ts";
 import { supabaseAdmin } from "./supabaseAdmin.ts";
 
 const COLUMNS =
-    "id, document_type, status, file_original, file_participant_signed, file_final, expires_at, participant_name, authorised_person_email";
+    "id, document_type, status, file_original, file_participant_signed, file_final, expires_at, participant_name, participant_email, authorised_person_email";
 
 export async function lookupByParticipantToken(token: string) {
     const hash = await hashToken(token);
@@ -20,6 +20,20 @@ export async function lookupByParticipantToken(token: string) {
         .from("documents")
         .select(COLUMNS)
         .eq("participant_token_hash", hash)
+        .maybeSingle();
+
+    if (error || !data) return null;
+    return data;
+}
+
+// The team leader's link. A separate token from the participant's on purpose:
+// one can never be replayed into the other's stage.
+export async function lookupByAuthorisedToken(token: string) {
+    const hash = await hashToken(token);
+    const { data, error } = await supabaseAdmin()
+        .from("documents")
+        .select(COLUMNS)
+        .eq("authorised_token_hash", hash)
         .maybeSingle();
 
     if (error || !data) return null;

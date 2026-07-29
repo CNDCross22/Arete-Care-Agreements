@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Arete Care · Sign Your Document</title>
+<title>Arete Care · Countersign Document</title>
 
 <link rel="stylesheet" href="css/style.css?v=20260728f">
 <link rel="icon" href="assets/arete-logo.png">
@@ -22,14 +22,14 @@
         <div class="brand-block">
             <img class="brand-logo" src="assets/arete-logo.png" alt="Arete Care">
             <div class="brand-text">
-                <h1>Sign Your Document</h1>
-                <p>Review the document below, then draw your signature where indicated.</p>
+                <h1>Countersign Document</h1>
+                <p>Review the document the participant has signed, then add your signature.</p>
             </div>
         </div>
 
         <ol class="stepper" id="stepper">
             <li data-step="sign" class="active"><span>1</span><em>Sign</em></li>
-            <li data-step="download"><span>2</span><em>Sent</em></li>
+            <li data-step="download"><span>2</span><em>Executed</em></li>
         </ol>
     </div>
     <svg class="header-wave" viewBox="0 0 1440 48" preserveAspectRatio="none" aria-hidden="true">
@@ -55,7 +55,7 @@
 
             <div class="sign-status" id="loadingState">
                 <img src="assets/arete-logo.png" alt="Arete Care">
-                <h3>Loading your document&hellip;</h3>
+                <h3>Loading the document&hellip;</h3>
                 <p>Just a moment.</p>
             </div>
 
@@ -67,8 +67,8 @@
 
             <div class="sign-status sign-status--success" id="successState" hidden>
                 <span class="status-icon">&#9989;</span>
-                <h3>Thanks, your signed document has been sent</h3>
-                <p>Arete Care has received it. You don't need to do anything else.</p>
+                <h3>Thanks, your signature has been added</h3>
+                <p>Both signatures are now complete. Arete Care will close the document out. You don't need to do anything else.</p>
             </div>
 
             <!-- Document preview (all pages) -->
@@ -85,7 +85,7 @@
         </div>
 
         <div class="panel-locked" id="panelLocked">
-            Loading your document&hellip;
+            Loading the document&hellip;
         </div>
 
         <div class="panel-body" id="panelBody" hidden>
@@ -114,7 +114,7 @@
                 <span id="progressLabel">0 of 0 signed</span>
             </div>
 
-            <button id="downloadBtn" disabled>Send signed document</button>
+            <button id="downloadBtn" disabled>Finalise document</button>
 
             <div id="signatureList" class="signature-list"></div>
         </div>
@@ -129,7 +129,7 @@
 </footer>
 
 <script src="js/signing-engine.js?v=20260728f"></script>
-<script src="js/sign.js?v=20260728f"></script>
+<script src="js/countersign.js?v=20260728f"></script>
 
 </body>
 </html>

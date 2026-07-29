@@ -8,6 +8,7 @@
 // outside this system; Compliance marks it done via mark-fully-executed once
 // that's back.
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
+import { generateToken, hashToken } from "../_shared/tokens.ts";
 import {
     supabaseAdmin,
     DOCUMENTS_BUCKET,
@@ -18,6 +19,7 @@ import { lookupByParticipantToken } from "../_shared/documentLookup.ts";
 import { sendGraphEmail, escapeHtml } from "../_shared/graphMail.ts";
 
 const INVALID_LINK_ERROR = "This link is no longer valid. It may have expired or already been used.";
+const FRONTEND_BASE_URL = "https://cndcross22.github.io/Arete-Care-Agreements";
 
 Deno.serve(async (req: Request) => {
     const preflight = handlePreflight(req);
@@ -60,12 +62,19 @@ Deno.serve(async (req: Request) => {
         return jsonResponse(req, 500, { error: `Could not store the signed PDF: ${upload.error.message}` });
     }
 
+    // The team leader signs in the portal too, so issue their own link now.
+    // A separate token from the participant's means the participant's link can
+    // never be replayed into the countersigning stage.
+    const authorisedToken = generateToken();
+    const authorisedTokenHash = await hashToken(authorisedToken);
+
     const update = await supabase
         .from("documents")
         .update({
             status: "AwaitingAuthorisedSignature",
             file_participant_signed: storagePath,
             participant_signed_at: new Date().toISOString(),
+            authorised_token_hash: authorisedTokenHash,
         })
         .eq("id", doc.id);
 
@@ -78,12 +87,15 @@ Deno.serve(async (req: Request) => {
     // notice in the function logs and follow up manually if it happens.
     try {
         const label = DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.document_type;
+        const countersignLink = `${FRONTEND_BASE_URL}/countersign.html?token=${authorisedToken}`;
         await sendGraphEmail({
             to: doc.authorised_person_email,
             subject: `Your signature is needed: ${label} signed by ${doc.participant_name}`,
             html: `
                 <p>${escapeHtml(doc.participant_name)} has signed their ${escapeHtml(label)}.</p>
-                <p>The signed document is attached. Please review it and add your signature using your own process, then mark it as fully executed in the Compliance portal once that's done.</p>
+                <p>It now needs your signature to complete it.</p>
+                <p><a href="${countersignLink}">Open the document to sign</a></p>
+                <p>A copy of what they signed is attached for your reference. This link is for you only, so please don't forward it.</p>
             `,
             attachment: {
                 name: documentFileName(doc.document_type, doc.participant_name),

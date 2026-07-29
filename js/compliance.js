@@ -19,6 +19,7 @@ const STATUS_LABELS = {
     AwaitingParticipantSignature: "Awaiting participant",
     ParticipantSigned: "Participant signed",
     AwaitingAuthorisedSignature: "Awaiting team leader",
+    Countersigned: "Both signed",
     FullyExecuted: "Fully executed",
     Purged: "Expired / purged",
 };
@@ -283,8 +284,8 @@ async function handleSendLink(button) {
 async function handleMarkFullyExecuted(documentId) {
     if (!confirm(
         "Mark this document as fully executed?\n\n" +
-        "Only do this once the team leader has signed it themselves.\n\n" +
-        "This also deletes the stored PDFs and stops the participant's link working. " +
+        "Both signatures are already in. This closes the document out and deletes " +
+        "the stored PDFs, so make sure anyone who needs a copy has one first.\n\n" +
         "The document stays in this list as a record, but the files can't be recovered."
     )) {
         return;
@@ -408,8 +409,11 @@ function renderAction(doc) {
             sentBefore ? "Resend link" : "Send link"
         }</button>`;
     }
-    if (doc.status === "AwaitingAuthorisedSignature") {
-        return `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}" title="Mark as fully executed, only once the team leader has signed it themselves">Mark executed</button>`;
+    // Only once both signatures are in. While it sits at "Awaiting team
+    // leader" there is nothing for Compliance to do: that person has their own
+    // link and the portal is waiting on them.
+    if (doc.status === "Countersigned") {
+        return `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}" title="Close this out and delete the stored files">Mark executed</button>`;
     }
     return "";
 }

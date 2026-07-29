@@ -169,17 +169,23 @@ const DOCUMENTS = {
     }
 };
 
-// The participant-facing page (sign.html) only ever signs as
-// "participant"/"representative" -- never the internal "arete" role, which is
-// only used for local, in-person co-signing via index.html. This filters a
-// shared config down to just the field(s) actionable there, without mutating
-// the shared DOCUMENTS entry. (There is no portal page for the Arete
-// Authorised Person's signature -- they sign using their own tools outside
-// this system; see the "Send to authorised person" hand-off in compliance.html.)
+// Each signing stage sees only its own field(s). These filter a shared config
+// down to what's actionable on that page, without mutating the shared DOCUMENTS
+// entry. sign.html signs as participant/representative; countersign.html signs
+// as the internal "arete" role (the team leader). index.html is unfiltered,
+// since local in-person signing may cover every role at once.
 const PARTICIPANT_STAGE_ROLES = ["participant", "representative"];
 
 function configForParticipantStage(config) {
     return { ...config, signatures: config.signatures.filter((s) => PARTICIPANT_STAGE_ROLES.includes(s.role)) };
+}
+
+// Tick boxes and text fields are dropped entirely: the participant already
+// completed them and they're flattened into the PDF this page fetches, so
+// re-rendering them as empty overlays would invite the team leader to fill in
+// answers that are not theirs to give.
+function configForAuthorisedStage(config) {
+    return { ...config, signatures: config.signatures.filter((s) => s.role === "arete"), checkboxes: [], textFields: [] };
 }
 
 /* ---------- State ---------- */

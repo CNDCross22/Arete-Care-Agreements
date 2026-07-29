@@ -1,13 +1,10 @@
-// Compliance-only. The Authorised Person signs outside this system entirely
-// (their own tools/process) -- there's no file or signature for us to verify
-// here. This lets Compliance record that it came back fully executed once
-// they've confirmed it, closing out the document on the dashboard.
+// Compliance-only. Closes out a document that both the participant and the
+// team leader have already signed in the portal (status Countersigned).
 //
-// Closing out also cleans up: the stored PDFs are deleted and the participant's
-// link is invalidated, since the signed document now lives with the team leader
-// and this portal has no further use for a copy. The row itself is kept, so the
-// dashboard still shows the document was completed and when -- only the content
-// and the means of reaching it are removed.
+// Closing out cleans up: every stored PDF is deleted and both links are
+// invalidated. The row itself is kept, so the dashboard still shows the
+// document was completed and when. Only the content and the means of reaching
+// it are removed.
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
 import { supabaseAdmin, DOCUMENTS_BUCKET } from "../_shared/supabaseAdmin.ts";
 
@@ -39,9 +36,9 @@ Deno.serve(async (req: Request) => {
 
     if (fetchError) return jsonResponse(req, 500, { error: fetchError.message });
     if (!doc) return jsonResponse(req, 404, { error: "No document with that id." });
-    if (doc.status !== "AwaitingAuthorisedSignature") {
+    if (doc.status !== "Countersigned") {
         return jsonResponse(req, 400, {
-            error: `This document isn't awaiting the team leader's signature (current status: ${doc.status}).`,
+            error: `This document isn't ready to close out yet. Both the participant and the team leader have to sign first (current status: ${doc.status}).`,
         });
     }
 
@@ -65,9 +62,10 @@ Deno.serve(async (req: Request) => {
             status: "FullyExecuted",
             finalised_at: now,
             purged_at: now,
-            // Kills the participant's link: lookups match on this hash, and a
-            // null can never be matched by an incoming token.
+            // Kills both links: lookups match on these hashes, and a null can
+            // never be matched by an incoming token.
             participant_token_hash: null,
+            authorised_token_hash: null,
             file_original: null,
             file_participant_signed: null,
             file_final: null,
