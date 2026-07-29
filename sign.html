@@ -6,7 +6,7 @@
 
 <title>Arete Care · Sign Your Document</title>
 
-<link rel="stylesheet" href="css/style.css?v=20260729a">
+<link rel="stylesheet" href="css/style.css?v=20260729b">
 <link rel="icon" href="assets/arete-logo.png">
 
 <script src="libs/pdf.min.js"></script>
@@ -15,6 +15,32 @@
 </head>
 
 <body>
+
+<!-- ============ PRIVACY NOTICE ============ -->
+<!-- Ships open so it covers the page from the first paint; js/privacy-notice.js
+     only closes it. -->
+<div class="modal-overlay open" id="privacyModal" aria-hidden="false">
+    <div class="modal-card modal-card--notice" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
+        <img class="modal-logo" src="assets/arete-logo.png" alt="Arete Care">
+        <h2 id="privacyTitle">Privacy Notice</h2>
+        <p class="modal-sub">Please read this before signing your document.</p>
+
+        <p class="notice-intro">This document forms part of your agreement with <strong>Arete Care</strong>.</p>
+
+        <ul class="notice-list">
+            <li>Your signature and the signed document are sent to Arete Care when you press Send.</li>
+            <li>They are stored securely and seen only by the staff handling your agreement.</li>
+            <li>This link is meant for you alone. Please do not forward it to anyone else.</li>
+            <li>The stored copy is deleted once your agreement is completed.</li>
+        </ul>
+
+        <p class="notice-consent">
+            By selecting &ldquo;I understand and agree&rdquo; you consent to signing this document electronically.
+        </p>
+
+        <button type="button" class="notice-accept" id="privacyAccept">I understand and agree</button>
+    </div>
+</div>
 
 <!-- ============ HEADER ============ -->
 <header class="header">
@@ -128,6 +154,7 @@
     <span>© Arete Care</span>
 </footer>
 
+<script src="js/privacy-notice.js?v=20260729b"></script>
 <script src="js/signing-engine.js?v=20260729a"></script>
 <script src="js/sign.js?v=20260729a"></script>
 
