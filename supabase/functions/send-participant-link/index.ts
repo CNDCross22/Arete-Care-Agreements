@@ -68,12 +68,12 @@ Deno.serve(async (req: Request) => {
     try {
         await sendGraphEmail({
             to: doc.participant_email,
-            subject: `Your ${label} is ready to sign`,
+            subject: `${label} for Review and Signature`,
             html: `
-                <p>Hi ${escapeHtml(doc.participant_name)},</p>
-                <p>Your ${escapeHtml(label)} is ready for you to review and sign online.</p>
-                <p><a href="${participantLink}">Open your document to sign</a></p>
-                <p>This link is personal to you, so please don't forward it.</p>
+                <p>Dear Participant Representative,</p>
+                <p>Please find the link to the ${escapeHtml(label)} for your review and signature as the participant's representative.</p>
+                <p><a href="${participantLink}">Open the document to review and sign</a></p>
+                <p>If you have any questions or require any clarification, please don't hesitate to contact us.</p>
             `,
         });
     } catch (error) {

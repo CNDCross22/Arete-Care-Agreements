@@ -86,11 +86,11 @@ Deno.serve(async (req: Request) => {
         const label = DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.document_type;
         await sendGraphEmail({
             to: Deno.env.get("FINAL_COPY_EMAIL") ?? FINAL_COPY_FALLBACK,
-            subject: `Fully signed: ${label} for ${doc.participant_name}`,
+            subject: `Completed ${label}`,
             html: `
-                <p>The ${escapeHtml(label)} for ${escapeHtml(doc.participant_name)} is now signed by both parties.</p>
-                <p>The completed document is attached.</p>
-                <p>It can be closed out in the Compliance portal, which removes the copy held there.</p>
+                <p>Please find the completed ${escapeHtml(label)} attached for your records.</p>
+                <p>The agreement has been fully executed and includes all required signatures.</p>
+                <p>Kindly save this document in the participant's file.</p>
             `,
             attachment: {
                 name: documentFileName(doc.document_type, doc.participant_name),

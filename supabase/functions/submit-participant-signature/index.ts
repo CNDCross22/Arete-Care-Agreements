@@ -9,12 +9,7 @@
 // that's back.
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
 import { generateToken, hashToken } from "../_shared/tokens.ts";
-import {
-    supabaseAdmin,
-    DOCUMENTS_BUCKET,
-    DOCUMENT_TYPE_LABELS,
-    documentFileName,
-} from "../_shared/supabaseAdmin.ts";
+import { supabaseAdmin, DOCUMENTS_BUCKET, DOCUMENT_TYPE_LABELS } from "../_shared/supabaseAdmin.ts";
 import { lookupByParticipantToken } from "../_shared/documentLookup.ts";
 import { sendGraphEmail, escapeHtml } from "../_shared/graphMail.ts";
 
@@ -90,17 +85,12 @@ Deno.serve(async (req: Request) => {
         const countersignLink = `${FRONTEND_BASE_URL}/countersign.html?token=${authorisedToken}`;
         await sendGraphEmail({
             to: doc.authorised_person_email,
-            subject: `Your signature is needed: ${label} signed by ${doc.participant_name}`,
+            subject: `${label} for Review and Signature`,
             html: `
-                <p>${escapeHtml(doc.participant_name)} has signed their ${escapeHtml(label)}.</p>
-                <p>It now needs your signature to complete it.</p>
-                <p><a href="${countersignLink}">Open the document to sign</a></p>
-                <p>A copy of what they signed is attached for your reference. This link is for you only, so please don't forward it.</p>
+                <p>Dear Team Leader,</p>
+                <p>Please find the link to the ${escapeHtml(label)} of ${escapeHtml(doc.participant_name)} below for your review and signature.</p>
+                <p><a href="${countersignLink}">Open the document to review and sign</a></p>
             `,
-            attachment: {
-                name: documentFileName(doc.document_type, doc.participant_name),
-                contentBytes: pdfBase64,
-            },
         });
     } catch (error) {
         console.error(`Failed to email authorised person for document ${doc.id}:`, error);
