@@ -5,10 +5,22 @@
 // signed, but closing out deletes the PDFs, so that stays a deliberate action
 // by Compliance (see mark-fully-executed) instead of firing automatically here.
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
-import { supabaseAdmin, DOCUMENTS_BUCKET } from "../_shared/supabaseAdmin.ts";
+import {
+    supabaseAdmin,
+    DOCUMENTS_BUCKET,
+    DOCUMENT_TYPE_LABELS,
+    documentFileName,
+} from "../_shared/supabaseAdmin.ts";
 import { lookupByAuthorisedToken } from "../_shared/documentLookup.ts";
+import { sendGraphEmail, escapeHtml } from "../_shared/graphMail.ts";
 
 const INVALID_LINK_ERROR = "This link is no longer valid. It may have expired or already been used.";
+
+// Where the completed agreement lands. A placeholder for now, so it's an Edge
+// Function secret rather than a constant: changing it is `supabase secrets set
+// FINAL_COPY_EMAIL=...`, no code change or redeploy. The fallback keeps the
+// document from going nowhere if the secret is ever missing.
+const FINAL_COPY_FALLBACK = "carlo@aretecare.com.au";
 
 Deno.serve(async (req: Request) => {
     const preflight = handlePreflight(req);
@@ -65,6 +77,28 @@ Deno.serve(async (req: Request) => {
 
     if (update.error) {
         return jsonResponse(req, 500, { error: `Could not update the document record: ${update.error.message}` });
+    }
+
+    // The signature is already saved by this point, so a mail failure must not
+    // read as a failed signing to the team leader. Logged for the function logs
+    // instead; Compliance can still reach the file until they close it out.
+    try {
+        const label = DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.document_type;
+        await sendGraphEmail({
+            to: Deno.env.get("FINAL_COPY_EMAIL") ?? FINAL_COPY_FALLBACK,
+            subject: `Fully signed: ${label} for ${doc.participant_name}`,
+            html: `
+                <p>The ${escapeHtml(label)} for ${escapeHtml(doc.participant_name)} is now signed by both parties.</p>
+                <p>The completed document is attached.</p>
+                <p>It can be closed out in the Compliance portal, which removes the copy held there.</p>
+            `,
+            attachment: {
+                name: documentFileName(doc.document_type, doc.participant_name),
+                contentBytes: pdfBase64,
+            },
+        });
+    } catch (error) {
+        console.error(`Failed to email the final copy for document ${doc.id}:`, error);
     }
 
     return jsonResponse(req, 200, { ok: true });
