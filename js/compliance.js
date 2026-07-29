@@ -178,6 +178,11 @@ docTableBody.addEventListener("click", (event) => {
         handleSendLink(sendBtn);
         return;
     }
+    const downloadLink = event.target.closest("[data-download]");
+    if (downloadLink) {
+        handleDownload(downloadLink);
+        return;
+    }
     const markBtn = event.target.closest("[data-mark-executed]");
     if (markBtn) handleMarkFullyExecuted(markBtn.dataset.markExecuted);
 });
@@ -279,13 +284,51 @@ async function handleSendLink(button) {
     }
 }
 
+// Saves a copy of the signed PDF while it still exists. The Edge Function
+// returns a signed URL that expires in a minute rather than the file itself,
+// so the download streams straight from storage.
+async function handleDownload(button) {
+    button.disabled = true;
+    busyActions++;
+
+    try {
+        const response = await fetch(
+            `${SUPABASE_FUNCTIONS_URL}/download-document?id=${encodeURIComponent(button.dataset.download)}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                    apikey: SUPABASE_ANON_KEY,
+                },
+            },
+        );
+
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not download this document.");
+
+        // The signed URL carries its own attachment header, so clicking a link
+        // to it saves the file instead of navigating the page away.
+        const link = document.createElement("a");
+        link.href = body.url;
+        link.download = body.fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        alert(error.message || "Something went wrong.");
+    } finally {
+        button.disabled = false;
+        busyActions--;
+    }
+}
+
 // Compliance confirms the Authorised Person's own signing is done and closes
 // the document out. No file to verify -- this is a manual record, not a check.
 async function handleMarkFullyExecuted(documentId) {
     if (!confirm(
         "Mark this document as fully executed?\n\n" +
         "Both signatures are already in. This closes the document out and deletes " +
-        "the stored PDFs, so make sure anyone who needs a copy has one first.\n\n" +
+        "the stored PDFs. If anyone still needs a copy, cancel and use the download " +
+        "button next to this one first.\n\n" +
         "The document stays in this list as a record, but the files can't be recovered."
     )) {
         return;
@@ -412,8 +455,17 @@ function renderAction(doc) {
     // Only once both signatures are in. While it sits at "Awaiting team
     // leader" there is nothing for Compliance to do: that person has their own
     // link and the portal is waiting on them.
+    // Download sits first, in the order the work happens: take a copy, then
+    // close the document out. Marking it executed deletes the files, so this is
+    // the last point at which either button has anything to act on -- both
+    // disappear together once the status moves on.
     if (doc.status === "Countersigned") {
-        return `<button type="button" class="ghost-btn" data-mark-executed="${doc.id}" title="Close this out and delete the stored files">Mark executed</button>`;
+        return `
+            <div class="doc-actions">
+                <button type="button" class="ghost-btn icon-btn" data-download="${doc.id}" title="Download the signed PDF" aria-label="Download the signed PDF">&#11015;</button>
+                <button type="button" class="ghost-btn" data-mark-executed="${doc.id}" title="Close this out and delete the stored files">Mark executed</button>
+            </div>
+        `;
     }
     return "";
 }

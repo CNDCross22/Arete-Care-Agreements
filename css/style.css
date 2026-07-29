@@ -872,6 +872,13 @@ button:active{ transform:translateY(1px); }
 }
 .doc-table-empty{ text-align:center; color:var(--muted); padding:24px 10px; }
 
+/* Action cell is right-aligned, so the row of buttons is too. */
+.doc-actions{ display:flex; gap:6px; justify-content:flex-end; align-items:center; }
+
+/* Square-ish button for a glyph on its own, so it doesn't inherit the text
+   button's horizontal padding and end up wider than it is tall. */
+.icon-btn{ min-height:34px; padding:0; width:34px; font-size:15px; line-height:1; }
+
 .status-pill{
     display:inline-block;
     padding:4px 10px;
