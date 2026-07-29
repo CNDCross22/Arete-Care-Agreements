@@ -1,9 +1,14 @@
 // Token-gated, public. Accepts the flattened final PDF (the participant's
-// signature and the team leader's, both baked in by the client) and stores it.
+// signature and the team leader's, both baked in by the client), stores it,
+// emails the completed agreement to the reports mailbox, and then closes the
+// document out itself.
 //
-// This stops at Countersigned rather than FullyExecuted: both parties have
-// signed, but closing out deletes the PDFs, so that stays a deliberate action
-// by Compliance (see mark-fully-executed) instead of firing automatically here.
+// Closing out deletes the stored PDFs, so it only happens once that email has
+// actually been accepted -- at that point the reports mailbox holds the only
+// copy anyone needs, and keeping a second one here would just be an unnecessary
+// place for participant data to sit. If the email fails the document is left at
+// Countersigned with its files intact, because then nobody has a copy and a
+// person needs to deal with it (see mark-fully-executed).
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
 import {
     supabaseAdmin,
@@ -11,6 +16,7 @@ import {
     DOCUMENT_TYPE_LABELS,
     documentFileName,
 } from "../_shared/supabaseAdmin.ts";
+import { closeOutDocument } from "../_shared/closeOut.ts";
 import { lookupByAuthorisedToken } from "../_shared/documentLookup.ts";
 import { sendGraphEmail, escapeHtml } from "../_shared/graphMail.ts";
 
@@ -81,7 +87,7 @@ Deno.serve(async (req: Request) => {
 
     // The signature is already saved by this point, so a mail failure must not
     // read as a failed signing to the team leader. Logged for the function logs
-    // instead; Compliance can still reach the file until they close it out.
+    // instead, and the document keeps its files so Compliance can pick it up.
     try {
         const label = DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.document_type;
         await sendGraphEmail({
@@ -99,7 +105,28 @@ Deno.serve(async (req: Request) => {
         });
     } catch (error) {
         console.error(`Failed to email the final copy for document ${doc.id}:`, error);
+        // Deliberately still a success for the team leader: their signature is
+        // stored. The document just stays at Countersigned for a person to
+        // close out once they have the copy.
+        return jsonResponse(req, 200, { ok: true, closedOut: false });
     }
 
-    return jsonResponse(req, 200, { ok: true });
+    // The email was accepted, so the copy exists outside this system and the
+    // stored PDFs and links have no further purpose. The row stays as the
+    // record of what happened.
+    const closed = await closeOutDocument(supabase, {
+        id: doc.id,
+        file_original: doc.file_original,
+        file_participant_signed: doc.file_participant_signed,
+        file_final: storagePath,
+    });
+
+    if (!closed.ok) {
+        // Same reasoning: nothing here is the team leader's problem. The
+        // document is left at Countersigned and Compliance sees the action.
+        console.error(`Emailed the final copy but could not close out document ${doc.id}: ${closed.error}`);
+        return jsonResponse(req, 200, { ok: true, closedOut: false });
+    }
+
+    return jsonResponse(req, 200, { ok: true, closedOut: true });
 });

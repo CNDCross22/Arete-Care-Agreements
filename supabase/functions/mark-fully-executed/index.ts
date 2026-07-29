@@ -1,12 +1,13 @@
-// Compliance-only. Closes out a document that both the participant and the
-// team leader have already signed in the portal (status Countersigned).
+// Compliance-only fallback for closing out a signed document.
 //
-// Closing out cleans up: every stored PDF is deleted and both links are
-// invalidated. The row itself is kept, so the dashboard still shows the
-// document was completed and when. Only the content and the means of reaching
-// it are removed.
+// Normally nothing calls this: submit-countersignature closes the document out
+// itself once the completed copy has been emailed to the reports mailbox. A
+// document only sits at Countersigned when that email failed, which is exactly
+// when a person has to look at it -- take a copy from the dashboard, then close
+// it out here.
 import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
-import { supabaseAdmin, DOCUMENTS_BUCKET } from "../_shared/supabaseAdmin.ts";
+import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
+import { closeOutDocument, CLOSE_OUT_COLUMNS } from "../_shared/closeOut.ts";
 
 Deno.serve(async (req: Request) => {
     const preflight = handlePreflight(req);
@@ -30,7 +31,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: doc, error: fetchError } = await supabase
         .from("documents")
-        .select("id, status, file_original, file_participant_signed, file_final")
+        .select(`status, ${CLOSE_OUT_COLUMNS}`)
         .eq("id", documentId)
         .maybeSingle();
 
@@ -42,39 +43,10 @@ Deno.serve(async (req: Request) => {
         });
     }
 
-    // Delete the files before clearing the row. Doing it the other way round
-    // would lose the only record of where they live if the update succeeded and
-    // the delete then failed, orphaning them in the bucket forever.
-    const paths = [doc.file_original, doc.file_participant_signed, doc.file_final].filter(Boolean) as string[];
-    if (paths.length) {
-        const { error: removeError } = await supabase.storage.from(DOCUMENTS_BUCKET).remove(paths);
-        if (removeError) {
-            return jsonResponse(req, 500, {
-                error: `Could not delete the stored files, so nothing was changed: ${removeError.message}`,
-            });
-        }
+    const result = await closeOutDocument(supabase, doc);
+    if (!result.ok) {
+        return jsonResponse(req, 500, { error: result.error });
     }
 
-    const now = new Date().toISOString();
-    const { error: updateError } = await supabase
-        .from("documents")
-        .update({
-            status: "FullyExecuted",
-            finalised_at: now,
-            purged_at: now,
-            // Kills both links: lookups match on these hashes, and a null can
-            // never be matched by an incoming token.
-            participant_token_hash: null,
-            authorised_token_hash: null,
-            file_original: null,
-            file_participant_signed: null,
-            file_final: null,
-        })
-        .eq("id", documentId);
-
-    if (updateError) {
-        return jsonResponse(req, 500, { error: `Could not update the document record: ${updateError.message}` });
-    }
-
-    return jsonResponse(req, 200, { ok: true, filesDeleted: paths.length });
+    return jsonResponse(req, 200, { ok: true, filesDeleted: result.filesDeleted });
 });

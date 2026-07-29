@@ -455,10 +455,13 @@ function renderAction(doc) {
     // Only once both signatures are in. While it sits at "Awaiting team
     // leader" there is nothing for Compliance to do: that person has their own
     // link and the portal is waiting on them.
-    // Download sits first, in the order the work happens: take a copy, then
-    // close the document out. Marking it executed deletes the files, so this is
-    // the last point at which either button has anything to act on -- both
-    // disappear together once the status moves on.
+    // Countersigned is normally a state nobody sees: once the team leader
+    // signs, the completed copy is emailed to the reports mailbox and the
+    // document closes itself out in the same request. A row sitting here means
+    // that email did not go out, so this is the one case where no copy of the
+    // agreement exists anywhere and a person has to take one and close it out
+    // by hand. Hence both buttons, which is also why they're never visible in
+    // the normal flow.
     if (doc.status === "Countersigned") {
         return `
             <div class="doc-actions">
