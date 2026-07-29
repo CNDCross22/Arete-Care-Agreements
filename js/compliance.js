@@ -463,7 +463,7 @@ function renderAction(doc) {
         return `
             <div class="doc-actions">
                 <button type="button" class="ghost-btn icon-btn" data-download="${doc.id}" title="Download the signed PDF" aria-label="Download the signed PDF">&#11015;</button>
-                <button type="button" class="ghost-btn" data-mark-executed="${doc.id}" title="Close this out and delete the stored files">Mark executed</button>
+                <button type="button" class="ghost-btn ghost-btn--reset icon-btn" data-mark-executed="${doc.id}" title="Mark executed: close this out and delete the stored files" aria-label="Mark executed">&#10003;</button>
             </div>
         `;
     }
