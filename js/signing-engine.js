@@ -214,7 +214,10 @@ const panelLocked = document.getElementById("panelLocked");
 const panelBody = document.getElementById("panelBody");
 const panelMode = document.getElementById("panelMode");
 const signerRoleSelect = document.getElementById("signerRole");
+// Only index.html has the editable picker. The portal pages show a read-only
+// line instead, so whichever of these exists drives the date.
 const signedDateInput = document.getElementById("signedDate");
+const signedDateLabel = document.getElementById("signedDateLabel");
 const signatureCanvas = document.getElementById("signaturePad");
 const signatureList = document.getElementById("signatureList");
 const progressFill = document.getElementById("progressFill");
@@ -509,7 +512,9 @@ function enterSigningMode(config, numPages) {
         .map((signature) => `<option value="${signature.role}">${signature.label}</option>`)
         .join("");
 
-    signedDateInput.value = todayIso(); // default to today; signer can change it
+    // Absent on the portal pages, where the date is fixed to the day of signing.
+    if (signedDateInput) signedDateInput.value = todayIso();
+    if (signedDateLabel) signedDateLabel.textContent = formatDate(todayIso());
 
     const hasFields =
         (config.checkboxes && config.checkboxes.length) ||
@@ -619,7 +624,7 @@ function applySignature() {
         return;
     }
 
-    if (!signedDateInput.value) {
+    if (signedDateInput && !signedDateInput.value) {
         alert("Please pick the date signed before applying.");
         signedDateInput.focus();
         return;
@@ -632,7 +637,11 @@ function applySignature() {
 
     appliedSignatures[target.id] = {
         dataUrl: getTrimmedSignatureDataUrl(),
-        signedDate: signedDateInput.value
+        // No date field on the portal pages: the stamp is the day the signature
+        // was actually applied, read at this moment rather than from anything
+        // the signer could have set earlier. index.html keeps its picker, since
+        // staff there are reproducing a document that was signed on paper.
+        signedDate: signedDateInput ? signedDateInput.value : todayIso(),
     };
 
     activeBox.innerHTML = "";

@@ -6,7 +6,7 @@
 
 <title>Arete Care · Countersign Document</title>
 
-<link rel="stylesheet" href="css/style.css?v=20260729c">
+<link rel="stylesheet" href="css/style.css?v=20260730a">
 <link rel="icon" href="assets/arete-logo.png">
 
 <script src="libs/pdf.min.js"></script>
@@ -124,8 +124,10 @@
             <h3>Signature for</h3>
             <select id="signerRole"></select>
 
+            <!-- Read-only on purpose: the stamp is the day the signature is
+                 applied, not something the signer can set. -->
             <h3>Date signed</h3>
-            <input type="date" id="signedDate">
+            <p class="panel-value" id="signedDateLabel"></p>
 
             <h3>Draw signature</h3>
             <canvas id="signaturePad"></canvas>
@@ -155,7 +157,7 @@
 </footer>
 
 <script src="js/privacy-notice.js?v=20260729b"></script>
-<script src="js/signing-engine.js?v=20260730a"></script>
+<script src="js/signing-engine.js?v=20260730b"></script>
 <script src="js/countersign.js?v=20260729a"></script>
 
 </body>
