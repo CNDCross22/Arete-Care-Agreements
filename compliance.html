@@ -36,11 +36,13 @@
 
         <form id="createForm">
             <h3>Document type</h3>
+            <!-- Ordered by how often Compliance reaches for them, so the first
+                 option is usually the right one already. -->
             <select id="documentType" required>
-                <option value="service">Service Agreement</option>
-                <option value="schedule">Schedule of Supports</option>
-                <option value="consent">Consent Form</option>
                 <option value="sil">SIL Service Agreement</option>
+                <option value="service">Service Agreement</option>
+                <option value="consent">Consent Form</option>
+                <option value="schedule">Schedule of Supports</option>
             </select>
 
             <h3>Participant name</h3>
