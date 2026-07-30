@@ -39,6 +39,7 @@ const fileSize = document.getElementById("fileSize");
 const fileClear = document.getElementById("fileClear");
 const liveDot = document.getElementById("liveDot");
 const liveLabel = document.getElementById("liveLabel");
+const actionHead = document.getElementById("actionHead");
 
 // Guards against a slow response from an earlier load landing after a newer one
 // and overwriting the fresher list, easy to hit now that every action refreshes
@@ -395,7 +396,8 @@ async function loadDocuments({ background = false } = {}) {
         }
         docCount.textContent = "";
         lastSnapshot = null;
-        docTableBody.innerHTML = `<tr><td colspan="6" class="doc-table-empty">${escapeHtml(error.message)}</td></tr>`;
+        actionHead.hidden = true;
+        docTableBody.innerHTML = `<tr><td colspan="5" class="doc-table-empty">${escapeHtml(error.message)}</td></tr>`;
     } finally {
         if (thisLoad === loadSequence && !background) refreshBtn.disabled = false;
     }
@@ -415,15 +417,23 @@ function renderDocuments(documents) {
         ? `${documents.length} document${documents.length === 1 ? "" : "s"}`
         : "";
 
+    // Most documents need nothing from Compliance: they are waiting on someone
+    // else, or they finished and closed themselves out. Drop the column
+    // entirely rather than leaving a header over a run of blank cells.
+    const actions = documents.map(renderAction);
+    const anyAction = actions.some((markup) => markup.trim() !== "");
+    actionHead.hidden = !anyAction;
+    const columnCount = anyAction ? 6 : 5;
+
     if (!documents.length) {
-        docTableBody.innerHTML = '<tr><td colspan="6" class="doc-table-empty">No documents yet.</td></tr>';
+        docTableBody.innerHTML = `<tr><td colspan="${columnCount}" class="doc-table-empty">No documents yet.</td></tr>`;
         return;
     }
 
     // One innerHTML write for the whole table rather than one per row: the
     // browser parses and lays out once instead of on every iteration.
     docTableBody.innerHTML = documents
-        .map((doc) => {
+        .map((doc, index) => {
             const label = DOCUMENT_TYPE_LABELS[doc.document_type] || doc.document_type;
             const status = STATUS_LABELS[doc.status] || doc.status;
             return `
@@ -436,7 +446,7 @@ function renderDocuments(documents) {
                     <td><span class="status-pill status-${doc.status}">${escapeHtml(status)}</span></td>
                     <td>${formatDate(doc.created_at)}</td>
                     <td>${formatDate(doc.link_sent_at, "Not sent")}</td>
-                    <td>${renderAction(doc)}</td>
+                    ${anyAction ? `<td>${actions[index]}</td>` : ""}
                 </tr>
             `;
         })

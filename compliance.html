@@ -104,11 +104,13 @@
                         <th>Status</th>
                         <th>Created</th>
                         <th>Link sent</th>
-                        <th>Action</th>
+                        <!-- Hidden by compliance.js whenever no row has an
+                             action, so a finished list has no dangling column. -->
+                        <th id="actionHead" hidden>Action</th>
                     </tr>
                 </thead>
                 <tbody id="docTableBody">
-                    <tr><td colspan="6" class="doc-table-empty">Loading&hellip;</td></tr>
+                    <tr><td colspan="5" class="doc-table-empty">Loading&hellip;</td></tr>
                 </tbody>
             </table>
         </div>
@@ -122,7 +124,7 @@
     <span>© Arete Care</span>
 </footer>
 
-<script src="js/compliance.js?v=20260729d"></script>
+<script src="js/compliance.js?v=20260730a"></script>
 
 </body>
 </html>
