@@ -115,8 +115,8 @@ Deno.serve(async (req: Request) => {
             subject: `Completed ${label}`,
             html: `
                 <p>Dear Participant Representative,</p>
-                <p>Please find the completed ${escapeHtml(label)} attached for your records.</p>
-                <p>The agreement has now been signed by both parties.</p>
+                <p>Please find the completed ${escapeHtml(label)} attached, signed by both parties.</p>
+                <p>This is your copy of the signed agreement, so please keep this email for your records.</p>
                 <p>If you have any questions or require any clarification, please don't hesitate to contact us.</p>
             `,
             attachment,
