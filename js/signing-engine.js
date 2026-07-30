@@ -491,7 +491,13 @@ function createSignatureBox(signature) {
     const labelPt = Math.max(7, Math.min(11, signature.height * 0.6));
     box.style.fontSize = `calc(var(--s, 1) * ${labelPt.toFixed(1)}px)`;
     box.textContent = signature.label;
-    box.addEventListener("click", () => selectTarget(signature.id, box));
+    box.addEventListener("click", () => {
+        selectTarget(signature.id, box);
+        // Only on a direct tap of the box. The signature list, the jump to the
+        // next unsigned field and the "you missed this one" prompt all select a
+        // target too, but those want the signer looking at the document.
+        scrollToSigningPanel();
+    });
     return box;
 }
 
@@ -582,6 +588,26 @@ function selectTargetById(targetId) {
 function scrollToTarget(targetId) {
     const box = document.querySelector(`[data-target-id="${targetId}"]`);
     if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// Below this width the panel stacks under the document instead of sitting
+// beside it -- same breakpoint the layout switches at in style.css.
+const STACKED_LAYOUT_QUERY = "(max-width:1080px)";
+
+// On a phone the signature pad is somewhere below the document, off screen.
+// Tapping a signature box would otherwise look like nothing happened: the
+// signer stays on the same page with no hint of where to draw. Take them to
+// the pad instead. On a wide screen the panel is already alongside, so this
+// does nothing.
+//
+// Deferred a frame because the panel is revealed in the same breath as this
+// call, and its position isn't final until the browser has laid the stacked
+// layout out.
+function scrollToSigningPanel() {
+    if (!window.matchMedia(STACKED_LAYOUT_QUERY).matches) return;
+    requestAnimationFrame(() => {
+        sidePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
 }
 
 /* ---------- Apply signature ---------- */
