@@ -14,7 +14,7 @@ import { lookupByParticipantToken } from "../_shared/documentLookup.ts";
 import { sendGraphEmail, escapeHtml } from "../_shared/graphMail.ts";
 
 const INVALID_LINK_ERROR = "This link is no longer valid. It may have expired or already been used.";
-const FRONTEND_BASE_URL = "https://cndcross22.github.io/Arete-Care-Agreements";
+const FRONTEND_BASE_URL = "https://portal.aretecare.com.au";
 
 Deno.serve(async (req: Request) => {
     const preflight = handlePreflight(req);

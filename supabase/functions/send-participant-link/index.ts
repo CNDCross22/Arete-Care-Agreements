@@ -15,7 +15,7 @@ import { generateToken, hashToken } from "../_shared/tokens.ts";
 import { supabaseAdmin, DOCUMENT_TYPE_LABELS } from "../_shared/supabaseAdmin.ts";
 import { sendGraphEmail, escapeHtml } from "../_shared/graphMail.ts";
 
-const FRONTEND_BASE_URL = "https://cndcross22.github.io/Arete-Care-Agreements";
+const FRONTEND_BASE_URL = "https://portal.aretecare.com.au";
 const SENDABLE_STATUSES = ["Uploaded", "AwaitingParticipantSignature"];
 
 Deno.serve(async (req: Request) => {
