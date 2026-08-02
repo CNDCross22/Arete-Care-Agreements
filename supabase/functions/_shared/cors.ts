@@ -2,7 +2,11 @@
 // domains, so every response needs CORS headers -- see HOW_IT_WORKS.txt / the
 // architecture plan for why. Reflect back the origin only if it's one we expect,
 // rather than allowing "*", since these endpoints write participant data.
+// portal.aretecare.com.au is the custom domain; the github.io address stays
+// allowed because GitHub keeps serving it (as a redirect) and it is the
+// fallback if the custom domain is ever removed again.
 const ALLOWED_ORIGINS = [
+    "https://portal.aretecare.com.au",
     "https://cndcross22.github.io",
     "http://localhost:5500",
     "http://127.0.0.1:5500",
