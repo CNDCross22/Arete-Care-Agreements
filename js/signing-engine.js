@@ -172,7 +172,7 @@ const DOCUMENTS = {
 // Each signing stage sees only its own field(s). These filter a shared config
 // down to what's actionable on that page, without mutating the shared DOCUMENTS
 // entry. sign.html signs as participant/representative; countersign.html signs
-// as the internal "arete" role (the team leader). index.html is unfiltered,
+// as the internal "arete" role (the team leader). tool.html is unfiltered,
 // since local in-person signing may cover every role at once.
 const PARTICIPANT_STAGE_ROLES = ["participant", "representative"];
 
@@ -190,7 +190,7 @@ function configForAuthorisedStage(config) {
 
 /* ---------- State ---------- */
 let activeDocumentKey = "";
-// The config actually driving rendering/signing right now. On index.html this
+// The config actually driving rendering/signing right now. On tool.html this
 // is the full DOCUMENTS[key] entry (all signature roles, local upload/download).
 // On sign.html / countersign.html it's a role-filtered view (see
 // configForParticipantStage/configForAuthorisedStage above) so a signer only
@@ -214,7 +214,7 @@ const panelLocked = document.getElementById("panelLocked");
 const panelBody = document.getElementById("panelBody");
 const panelMode = document.getElementById("panelMode");
 const signerRoleSelect = document.getElementById("signerRole");
-// Only index.html has the editable picker. The portal pages show a read-only
+// Only tool.html has the editable picker. The portal pages show a read-only
 // line instead, so whichever of these exists drives the date.
 const signedDateInput = document.getElementById("signedDate");
 const signedDateLabel = document.getElementById("signedDateLabel");
@@ -342,7 +342,7 @@ function resolvePlacements(config, lineIndex) {
 }
 
 // Shared entry point for "I have PDF bytes and a config, get them on screen":
-// used by the local file upload (index.html) and the token-fetched document
+// used by the local file upload (tool.html) and the token-fetched document
 // (sign.html / countersign.html) alike. Throws a user-facing message if the
 // expected anchors aren't found (wrong file / unexpected format).
 async function loadAndRenderDocument(bytes, config) {
@@ -639,7 +639,7 @@ function applySignature() {
         dataUrl: getTrimmedSignatureDataUrl(),
         // No date field on the portal pages: the stamp is the day the signature
         // was actually applied, read at this moment rather than from anything
-        // the signer could have set earlier. index.html keeps its picker, since
+        // the signer could have set earlier. tool.html keeps its picker, since
         // staff there are reproducing a document that was signed on paper.
         signedDate: signedDateInput ? signedDateInput.value : todayIso(),
     };
@@ -736,7 +736,7 @@ function renderSignatureList() {
 
 /* ---------- Build signed PDF bytes ----------
    Pure data-out: returns the flattened PDF bytes for the active config. Callers
-   decide whether to trigger a local download (index.html) or POST the bytes
+   decide whether to trigger a local download (tool.html) or POST the bytes
    somewhere (sign.html / countersign.html). Throws on missing signatures, with
    a `.missingId` on the error so the caller can jump the signer back to it. */
 async function buildSignedPdfBytes(config) {

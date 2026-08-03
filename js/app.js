@@ -1,4 +1,4 @@
-/* ---------- Compliance/local-upload shell (index.html only) ----------
+/* ---------- Compliance/local-upload shell (tool.html only) ----------
    Everything reusable (document config, anchor engine, rendering, signature
    capture, PDF flattening) lives in js/signing-engine.js, loaded before this
    file. This file only owns what's specific to "pick a document type, upload

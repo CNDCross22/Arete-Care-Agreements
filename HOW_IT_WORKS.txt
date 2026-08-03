@@ -8,11 +8,11 @@ Agreement, SIL Service Agreement, Schedule of Supports, Consent Form). The
 user uploads a blank PDF, draws signatures, ticks boxes and fills in blanks
 directly on top of the rendered pages, then downloads a flattened, signed
 PDF. Everything happens in the browser — no server, no upload, no backend.
-It's plain HTML/CSS/JS with no build step; just open index.html.
+It's plain HTML/CSS/JS with no build step; just open tool.html.
 
 FILES
 -----
-index.html      Page shell: the "which document?" modal, the upload zone,
+tool.html       Page shell: the "which document?" modal, the upload zone,
                 the scrollable PDF preview area, and the signing side panel.
 css/style.css   All styling (Arete Care branded, responsive).
 js/app.js       Everything else: document field definitions, PDF rendering,
@@ -79,7 +79,7 @@ Each entry has:
                       auto-ticks (or unticks) that checkbox
 
 Adding a new document type means adding a new entry here (plus a card in
-the mode-selection modal in index.html) — no other code changes needed.
+the mode-selection modal in tool.html) — no other code changes needed.
 
 CALIBRATING dx/dy (IMPORTANT GOTCHA)
 --------------------------------------

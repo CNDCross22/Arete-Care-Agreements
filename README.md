@@ -27,13 +27,13 @@ constant), so the fields always land in the right place.
 
 ## Running
 
-It's a static site — just open `index.html` in a browser, or serve the folder with
+It's a static site — just open `tool.html` in a browser, or serve the folder with
 any static file server.
 
 ## Project structure
 
 ```
-index.html        # markup / app shell
+tool.html         # offline signing tool shell
 css/style.css     # Arete Care themed, responsive styles
 js/app.js         # all app logic + per-document field coordinates
 assets/           # logo (sample PDFs are gitignored — they contain participant data)
